@@ -1,0 +1,3 @@
+#!/bin/bash
+find src res -type f |
+xargs -d'\n' emacs README CHANGELOG build edit &>/dev/null &

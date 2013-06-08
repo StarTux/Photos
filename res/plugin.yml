@@ -1,0 +1,21 @@
+name: Photos
+description: Load images onto maps
+author: StarTux
+version: 0.1
+main: com.winthier.photos.PhotosPlugin
+commands:
+  photo:
+    description: Photos user interface
+    usage: /<command>
+    permission: photos.photo
+  photos:
+    description: Photos admin interface
+    usage: /<command>
+    permission: photos.photos
+permissions:
+  photos.photo:
+    description: use the /photo command
+    default: op
+  photos.photos:
+    description: use the /photos command
+    default: op
