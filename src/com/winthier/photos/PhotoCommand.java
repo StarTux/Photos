@@ -40,7 +40,7 @@ public class PhotoCommand implements CommandExecutor {
                                         sendAsyncMessage(player, "" + ChatColor.RED + "Can't load URL: " + url);
                                         return;
                                 }
-                                sendAsyncMessage(player, "" + ChatColor.GREEN + "Image loaded" + url);
+                                sendAsyncMessage(player, "" + ChatColor.GREEN + "Image loaded: " + url);
                                 photo.save();
                         }
                 }.runTaskAsynchronously(plugin);

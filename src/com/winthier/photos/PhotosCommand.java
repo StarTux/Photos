@@ -39,7 +39,8 @@ public class PhotosCommand implements CommandExecutor {
                                 return true;
                         }
                         plugin.photosConfig.addPlayerBlanks(name, amount);
-                        sender.sendMessage("" + ChatColor.GREEN + "[Photos] Granted " + player.getName() + " " + amount + " blank photos");
+                        plugin.photosConfig.saveConfig();
+                        sender.sendMessage("" + ChatColor.GREEN + "[Photos] Granted " + name + " " + amount + " blank photos");
                         return true;
                 }
                 sender.sendMessage("" + ChatColor.YELLOW + "Usage: /photos [args...]");
