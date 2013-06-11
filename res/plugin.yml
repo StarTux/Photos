@@ -19,3 +19,6 @@ permissions:
   photos.photos:
     description: use the /photos command
     default: op
+  photos.override.loadcooldown:
+    description: Avoid the cooldown when loading urls
+    default: op

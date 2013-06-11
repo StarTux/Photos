@@ -21,6 +21,8 @@ public class PhotosPlugin extends JavaPlugin {
         public final PhotosMenu photosMenu = new PhotosMenu(this);
         public Economy economy;
         public double mapPrice;
+        public long loadCooldown;
+        public int maxFileSize;
 
         @Override
         public void onEnable() {
@@ -51,6 +53,8 @@ public class PhotosPlugin extends JavaPlugin {
                 // load config.yml
                 reloadConfig();
                 mapPrice = getConfig().getDouble("MapPrice");
+                loadCooldown = getConfig().getLong("LoadCooldown");
+                maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
                 // load photos.yml
                 photos.clear();
                 photosConfig.reloadConfig();

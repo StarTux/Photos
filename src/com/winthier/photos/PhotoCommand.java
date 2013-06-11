@@ -1,5 +1,7 @@
 package com.winthier.photos;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -11,6 +13,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class PhotoCommand implements CommandExecutor {
         public final PhotosPlugin plugin;
+        private final Map<String, Long> loadCooldowns = new HashMap<String, Long>();
 
         public PhotoCommand(PhotosPlugin plugin) {
                 this.plugin = plugin;
@@ -34,13 +37,24 @@ public class PhotoCommand implements CommandExecutor {
                         player.sendMessage("" + ChatColor.BLUE + "http://www.winthier.com/contributions");
                         return;
                 }
+                if (!player.hasPermission("photos.override.loadcooldown")) {
+                        Long tmp = loadCooldowns.get(player.getName());
+                        long lastTime = tmp == null ? 0 : tmp;
+                        long currentTime = System.currentTimeMillis() / 1000;
+                        long remainTime = plugin.loadCooldown - (currentTime - lastTime);
+                        if (remainTime > 0) {
+                                player.sendMessage("" + ChatColor.RED  + "You have to wait " + remainTime + " more seconds before loading another image");
+                                return;
+                        }
+                        loadCooldowns.put(player.getName(), currentTime);
+                }
                 new BukkitRunnable() {
                         public void run() {
-                                if (!photo.loadURL(url)) {
-                                        sendAsyncMessage(player, "" + ChatColor.RED + "Can't load URL: " + url);
+                                if (!photo.loadURL(url, player)) {
+                                        Util.sendAsyncMessage(player, "" + ChatColor.RED + "Can't load URL: " + url);
                                         return;
                                 }
-                                sendAsyncMessage(player, "" + ChatColor.GREEN + "Image loaded: " + url);
+                                Util.sendAsyncMessage(player, "" + ChatColor.GREEN + "Image loaded: " + url);
                                 photo.save();
                         }
                 }.runTaskAsynchronously(plugin);
@@ -66,14 +80,6 @@ public class PhotoCommand implements CommandExecutor {
                 }
                 photo.setName(name);
                 player.sendMessage("" + ChatColor.GREEN + "Name changed. Purchase a new copy by typing \"/photo menu\"");
-        }
-
-        public void sendAsyncMessage(final Player sender, final String message) {
-                new BukkitRunnable() {
-                        public void run() {
-                                sender.sendMessage(message);
-                        }
-                }.runTask(plugin);
         }
 
         @Override

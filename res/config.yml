@@ -1,1 +1,6 @@
+# MapPrice: Price for an additional copy of your map
+# LoadCooldown: Cooldown for loading images from URL
+# MaxFileSize: Maximum file size to load from URL, in KiB
 MapPrice: 100
+LoadCooldown: 60
+MaxFileSize: 3072

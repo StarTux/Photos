@@ -72,8 +72,8 @@ public class Photo {
                 return Util.saveImageToFile(image, getFilename());
         }
 
-        public synchronized boolean loadURL(final String url) {
-                BufferedImage img = Util.loadImageFromURL(url);
+        public synchronized boolean loadURL(final String url, Player player) {
+                BufferedImage img = Util.loadImageFromURL(url, player);
                 if (img == null) return false;
                 image = MapPalette.resizeImage(img);
                 dirty = true;
