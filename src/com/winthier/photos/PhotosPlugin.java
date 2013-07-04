@@ -105,6 +105,7 @@ public class PhotosPlugin extends JavaPlugin {
                 player.getWorld().dropItem(player.getEyeLocation(), item);
                 player.sendMessage("" + ChatColor.GREEN + "Photo created. To load an image, use the following command:");
                 player.sendMessage("" + ChatColor.YELLOW + "/photo load <url>");
+                getLogger().info(player.getName() + " created map #" + photo.getMapId());
         }
 
         private boolean setupEconomy()
