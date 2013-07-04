@@ -106,14 +106,17 @@ public class PhotosMenu implements Listener {
                         ItemMeta meta = item.getItemMeta();
                         if (name != null) meta.setDisplayName("" + ChatColor.GOLD + name);
                         else meta.setDisplayName("" + ChatColor.GOLD + "Map");
-                        meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to buy a copy for " + ChatColor.WHITE + plugin.economy.format(plugin.mapPrice)));
+                        meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to buy",
+                                                   "" + ChatColor.BLUE + "a copy for " + ChatColor.WHITE + plugin.economy.format(plugin.mapPrice)));
                         item.setItemMeta(meta);
                         inventory.addItem(item);
                 } {
                         ItemStack item = new ItemStack(Material.EMPTY_MAP, 1);
                         ItemMeta meta = item.getItemMeta();
                         meta.setDisplayName("" + ChatColor.DARK_GRAY + "New Photo");
-                        meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Blank photos left: " + ChatColor.WHITE + plugin.photosConfig.getPlayerBlanks(player)));
+                        meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to create",
+                                                   "" + ChatColor.BLUE + "a new blank photo.",
+                                                   "" + ChatColor.BLUE + "Blank photos left: " + ChatColor.WHITE + plugin.photosConfig.getPlayerBlanks(player)));
                         item.setItemMeta(meta);
                         inventory.addItem(item);
                 }

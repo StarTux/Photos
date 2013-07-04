@@ -5,19 +5,16 @@ version: 0.1
 main: com.winthier.photos.PhotosPlugin
 commands:
   photo:
+    aliases: [ photos ]
     description: Photos user interface
     usage: /<command>
     permission: photos.photo
-  photos:
-    description: Photos admin interface
-    usage: /<command>
-    permission: photos.photos
-permissions:
+photo:
   photos.photo:
-    description: use the /photo command
+    description: use the /photo and /photos command
     default: op
-  photos.photos:
-    description: use the /photos command
+  photos.admin:
+    description: advanced privileges for admins
     default: op
   photos.override.loadcooldown:
     description: Avoid the cooldown when loading urls

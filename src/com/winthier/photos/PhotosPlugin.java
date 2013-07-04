@@ -31,7 +31,6 @@ public class PhotosPlugin extends JavaPlugin {
                 getConfig().options().copyDefaults(true);
                 saveConfig();
                 getCommand("photo").setExecutor(new PhotoCommand(this));
-                getCommand("photos").setExecutor(new PhotosCommand(this));
                 if (!setupEconomy()) {
                         getLogger().warning("Economy setup failed!");
                 } else {

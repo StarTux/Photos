@@ -9,6 +9,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class PhotoCommand implements CommandExecutor {
@@ -79,6 +80,10 @@ public class PhotoCommand implements CommandExecutor {
                         return;
                 }
                 photo.setName(name);
+                plugin.photosConfig.saveConfig();
+                ItemMeta meta = item.getItemMeta();
+                meta.setDisplayName("" + ChatColor.GOLD + name);
+                item.setItemMeta(meta);
                 player.sendMessage("" + ChatColor.GREEN + "Name changed. Purchase a new copy by typing \"/photo menu\"");
         }
 
@@ -127,7 +132,43 @@ public class PhotoCommand implements CommandExecutor {
                         plugin.photosMenu.openMenu(player);
                         return true;
                 }
+                if (args.length == 1 && args[0].equals("reload")) {
+                        if (!sender.hasPermission("photos.admin")) {
+                                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
+                                return true;
+                        }
+                        plugin.load();
+                        sender.sendMessage("Configuraton reloaded");
+                        return true;
+                }
+                if (args.length == 1 && args[0].equals("save")) {
+                        if (!sender.hasPermission("photos.admin")) {
+                                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
+                                return true;
+                        }
+                        plugin.save();
+                        sender.sendMessage("Configuraton saved");
+                        return true;
+                }
+                if (args.length == 3 && args[0].equals("grant")) {
+                        if (!sender.hasPermission("photos.admin")) {
+                                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
+                                return true;
+                        }
+                        String name = args[1];
+                        Integer amount = null;
+                        try { amount = Integer.parseInt(args[2]); } catch (NumberFormatException e) {}
+                        if (amount == null || amount <= 0) {
+                                sender.sendMessage("" + ChatColor.RED + "[Photos] Positive number exptected: " + args[2]);
+                                return true;
+                        }
+                        plugin.photosConfig.addPlayerBlanks(name, amount);
+                        plugin.photosConfig.saveConfig();
+                        sender.sendMessage("" + ChatColor.GREEN + "[Photos] Granted " + name + " " + amount + " blank photos");
+                        return true;
+                }
                 sender.sendMessage("" + ChatColor.YELLOW + "Usage: /photo [args...]");
+                if (player != null) sender.sendMessage("" + ChatColor.BLUE   + "Blank Photos left: " + ChatColor.WHITE + plugin.photosConfig.getPlayerBlanks(player));
                 sender.sendMessage("" + ChatColor.GRAY   + "--- SYNOPSIS ---");
                 sender.sendMessage("" + ChatColor.YELLOW + "/photo menu");
                 sender.sendMessage("" + ChatColor.GRAY   + "View a menu with all your photos.");
@@ -137,6 +178,14 @@ public class PhotoCommand implements CommandExecutor {
                 sender.sendMessage("" + ChatColor.GRAY   + "Change the name of a photo.");
                 sender.sendMessage("" + ChatColor.YELLOW + "/photo load <url>");
                 sender.sendMessage("" + ChatColor.GRAY   + "Load a photo from the internet onto the map in your hand.");
+                if (sender.hasPermission("photos.admin")) {
+                        sender.sendMessage("" + ChatColor.YELLOW + "/photo grant <player> <#photos>");
+                        sender.sendMessage("" + ChatColor.GRAY   + "Give a player more blank photos");
+                        sender.sendMessage("" + ChatColor.YELLOW + "/photo reload");
+                        sender.sendMessage("" + ChatColor.GRAY   + "Reload the configuration");
+                        sender.sendMessage("" + ChatColor.YELLOW + "/photo save");
+                        sender.sendMessage("" + ChatColor.GRAY   + "Save the configuration");
+                }
                 return true;
         }
 }
