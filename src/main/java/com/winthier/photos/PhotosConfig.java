@@ -2,10 +2,11 @@ package com.winthier.photos;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +34,7 @@ public class PhotosConfig {
         }
 
         private void load() {
-                YamlConfiguration def = YamlConfiguration.loadConfiguration(plugin.getResource("photos.yml"));
+            YamlConfiguration def = YamlConfiguration.loadConfiguration(new InputStreamReader(plugin.getResource("photos.yml")));
                 config = YamlConfiguration.loadConfiguration(getSaveFile());
                 config.setDefaults(def);
                 config.options().copyDefaults(true);

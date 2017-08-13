@@ -1,5 +1,0 @@
-#!/bin/bash
-
-plugin=$(basename $(pwd))
-rm -rvf target/ ${plugin}.jar
-rm -vf files libs
