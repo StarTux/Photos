@@ -2,6 +2,7 @@ name: Photos
 description: Load images onto maps
 author: StarTux
 version: 0.1
+website: https://cavetale.com
 main: com.winthier.photos.PhotosPlugin
 commands:
   photo:

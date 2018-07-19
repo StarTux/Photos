@@ -81,7 +81,7 @@ public class PhotosMenu implements Listener {
                     Location loc = player.getLocation();
                     plugin.getLogger().info(String.format("Player %s bought map #%d in %s at %d,%d,%d", player.getName(), id, loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
                 }
-                if (item != null && item.getType() == Material.EMPTY_MAP) {
+                if (item != null && item.getType() == Material.MAP) {
                     plugin.createPhoto(player, "Photo");
                 }
             }
@@ -111,7 +111,7 @@ public class PhotosMenu implements Listener {
             item.setItemMeta(meta);
             inventory.addItem(item);
         } {
-            ItemStack item = new ItemStack(Material.EMPTY_MAP, 1);
+            ItemStack item = new ItemStack(Material.MAP);
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName("" + ChatColor.DARK_GRAY + "New Photo");
             meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to create",

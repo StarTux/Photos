@@ -4,14 +4,19 @@
   <groupId>com.winthier.photos</groupId>
   <artifactId>photos</artifactId>
   <packaging>jar</packaging>
-  <version>0.1</version>
+  <version>0.1-SNAPSHOT</version>
   <name>Photos</name>
-  <url>http://www.winthier.com</url>
+  <url>https://cavetale.com</url>
   <repositories>
+    <!-- Vault Repo -->
+    <repository>
+      <id>vault-repo</id>
+      <url>http://nexus.hc.to/content/repositories/pub_releases</url>
+    </repository>
     <!-- Spigot Repo -->
     <repository>
       <id>spigot-repo</id>
-      <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
     </repository>
   </repositories>
   <dependencies>
@@ -19,7 +24,7 @@
     <dependency>
       <groupId>org.spigotmc</groupId>
       <artifactId>spigot-api</artifactId>
-      <version>1.12.1-R0.1-SNAPSHOT</version>
+      <version>1.13-pre7-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <!-- Lombok -->
@@ -33,14 +38,14 @@
     <dependency>
       <groupId>net.milkbowl.vault</groupId>
       <artifactId>VaultAPI</artifactId>
-      <version>1.5</version>
+      <version>1.6</version>
       <scope>provided</scope>
     </dependency>
     <!-- PlayerCache -->
     <dependency>
       <groupId>com.winthier.playercache</groupId>
       <artifactId>playercache</artifactId>
-      <version>0.1</version>
+      <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
