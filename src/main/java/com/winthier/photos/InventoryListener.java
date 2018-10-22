@@ -82,6 +82,7 @@ final class InventoryListener implements Listener {
         if (item == null || item.getType() != Material.FILLED_MAP) return;
         Photo photo = plugin.findPhoto(item);
         if (photo == null) return;
+        event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player)event.getWhoClicked();
         player.sendMessage(ChatColor.RED + "You cannot duplicate Photos. Buy a copy instead.");
