@@ -1,238 +1,327 @@
 package com.winthier.photos;
 
-import com.winthier.playercache.PlayerCache;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import org.bukkit.ChatColor;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Color;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.metadata.MetadataValue;
 
-public class PhotoCommand implements CommandExecutor {
+/**
+ * Executor for the `/photo` command.
+ * This command is run by normal users, so all input has to be double
+ * checked for potential malicious behavior.
+ */
+public class PhotoCommand implements TabExecutor {
     public final PhotosPlugin plugin;
-    private final Map<UUID, Long> loadCooldowns = new HashMap<>();
-    private final Map<UUID, UUID> buyCodes = new HashMap<>();
+    static final String META_COOLDOWN = "photos.cooldown";
 
     public PhotoCommand(PhotosPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public void load(final Player player, final String url) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType() != Material.MAP) {
-            player.sendMessage("" + ChatColor.RED + "You must hold a photo in your main hand");
-            return;
-        }
-        short mapId = item.getDurability();
-        final Photo photo = plugin.getPhoto(mapId);
-        if (photo == null) {
-            player.sendMessage("" + ChatColor.RED  + "This map is not a photo.");
-            return;
-        }
-        if (!plugin.photosConfig.hasPlayerMap(player, mapId)) {
-            player.sendMessage("" + ChatColor.RED  + "You do not own this map.");
-            return;
-        }
-        if (!player.hasPermission("photos.override.loadcooldown")) {
-            Long tmp = loadCooldowns.get(player.getUniqueId());
-            long lastTime = tmp == null ? 0 : tmp;
-            long currentTime = System.currentTimeMillis() / 1000;
-            long remainTime = plugin.loadCooldown - (currentTime - lastTime);
-            if (remainTime > 0) {
-                player.sendMessage("" + ChatColor.RED  + "You have to wait " + remainTime + " more seconds before loading another image");
-                return;
-            }
-            loadCooldowns.put(player.getUniqueId(), currentTime);
-        }
-        new BukkitRunnable() {
-            public void run() {
-                if (!photo.loadURL(url, player)) {
-                    Util.sendAsyncMessage(player, "" + ChatColor.RED + "Can't load URL: " + url);
-                    return;
-                }
-                Util.sendAsyncMessage(player, "" + ChatColor.GREEN + "Image loaded: " + url);
-                photo.save();
-            }
-        }.runTaskAsynchronously(plugin);
+    /**
+     * An exception to be thrown whenever the command sender is to be
+     * presented with a command synopsis.  This is typically the case
+     * when they entered invalid syntax.
+     */
+    static final class UsageError extends Exception {
     }
 
-    public void rename(Player player, String name) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType() != Material.MAP) {
-            player.sendMessage("" + ChatColor.RED + "You must hold the photo in your main hand");
-            return;
+    /**
+     * An exception to be thrown when the user made a mistake and
+     * needs to be told a final message before the command execution
+     * is aborted.
+     */
+    static final class UserError extends Exception {
+        UserError(String message) {
+            super(message);
         }
-        short mapId = item.getDurability();
-        final Photo photo = plugin.getPhoto(mapId);
-        if (photo == null) {
-            player.sendMessage("" + ChatColor.RED  + "This map is not a photo.");
-            return;
+    }
+
+    /**
+     * When `/photo` is used without any aruments, open the photos GUI.
+     * If there are any arguments present, try to parse them, catch
+     * thrown Usage or UserErrors, and react accordingly.
+     */
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Player expected");
+            return true;
         }
-        if (!plugin.photosConfig.hasPlayerMap(player, mapId)) {
-            player.sendMessage("" + ChatColor.RED  + "You do not own this map.");
-            return;
+        Player player = (Player)sender;
+        if (args.length == 0) {
+            new PhotosMenu(plugin).open(player);
+            player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.25f, 2.0f);
+            return true;
+        } else {
+            try {
+                photoCommand(player, args[0], Arrays.copyOfRange(args, 1, args.length));
+            } catch (UserError user) {
+                sender.sendMessage(ChatColor.RED + user.getMessage());
+            } catch (UsageError usage) {
+                return false;
+            }
         }
-        photo.setName(name);
-        plugin.photosConfig.saveConfig();
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName("" + ChatColor.GOLD + name);
-        item.setItemMeta(meta);
-        player.sendMessage("" + ChatColor.GREEN + "Name changed. Purchase a new copy by typing \"/photo menu\"");
+        return true;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String args[]) {
-        Player player = null;
-        if (sender instanceof Player) player = (Player)sender;
-        if (args.length == 2 && args[0].equals("load")) {
-            if (player == null) return false;
-            load(player, args[1]);
-            return true;
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player)) return null;
+        Player player = (Player)sender;
+        ItemStack item = player.getInventory().getItemInHand();
+        Photo photo = null;
+        if (item != null && item.getType() == Material.FILLED_MAP) photo = plugin.findPhoto(item);
+        if (args.length == 0) return null;
+        if (args.length == 1) {
+            return tabComplete(args[0], Arrays.asList("load", "name", "color"));
         }
-        if (args.length >= 1 && args[0].equals("create")) {
-            if (player == null) return false;
-            String name = "Photo";
-            if (args.length > 1) {
-                StringBuilder sb = new StringBuilder(args[1]);
-                for (int i = 2; i < args.length; ++i) {
-                    sb.append(" ").append(args[i]);
-                }
-                if (sb.length() > 32) {
-                    player.sendMessage("" + ChatColor.RED + "Name is too long");
-                    return true;
-                }
-                name = sb.toString();
-            }
-            plugin.createPhoto(player, name);
-            return true;
-        }
-        if (args.length > 1 && args[0].equals("rename")) {
-            if (player == null) return false;
-            StringBuilder sb = new StringBuilder(args[1]);
-            for (int i = 2; i < args.length; ++i) {
-                sb.append(" ").append(args[i]);
-            }
-            if (sb.length() > 32) {
-                player.sendMessage("" + ChatColor.RED + "Name is too long");
-                return true;
-            }
-            String name = sb.toString();
-            rename(player, name);
-            return true;
-        }
-        if (args.length == 1 && args[0].equals("menu")) {
-            if (player == null) return false;
-            plugin.photosMenu.openMenu(player);
-            return true;
-        }
-        if (args.length == 1 && args[0].equals("reload")) {
-            if (!sender.hasPermission("photos.admin")) {
-                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
-                return true;
-            }
-            plugin.load();
-            sender.sendMessage("Configuraton reloaded");
-            return true;
-        }
-        if (args.length == 1 && args[0].equals("save")) {
-            if (!sender.hasPermission("photos.admin")) {
-                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
-                return true;
-            }
-            plugin.save();
-            sender.sendMessage("Configuraton saved");
-            return true;
-        }
-        if (args.length == 3 && args[0].equals("grant")) {
-            if (!sender.hasPermission("photos.admin")) {
-                sender.sendMessage("" + ChatColor.RED + "You don't have permission!");
-                return true;
-            }
-            String name = args[1];
-            UUID uuid = PlayerCache.uuidForName(name);
-            if (uuid == null) {
-                sender.sendMessage("" + ChatColor.RED + "[Photos] Player not found: " + name);
-                return true;
-            }
-            name = PlayerCache.nameForUuid(uuid);
-            Integer amount = null;
-            try { amount = Integer.parseInt(args[2]); } catch (NumberFormatException e) {}
-            if (amount == null || amount <= 0) {
-                sender.sendMessage("" + ChatColor.RED + "[Photos] Positive number exptected: " + args[2]);
-                return true;
-            }
-            plugin.photosConfig.addPlayerBlanks(uuid, amount);
-            plugin.photosConfig.saveConfig();
-            sender.sendMessage("" + ChatColor.GREEN + "[Photos] Granted " + name + " " + amount + " blank photos");
-            return true;
-        }
-        if ((args.length == 1 || args.length == 2) && args[0].equals("buy")) {
-            String moneyFormat = plugin.economy.format(plugin.blankPrice);
-            if (args.length == 1) {
-                if (!plugin.economy.has(player, plugin.blankPrice)) {
-                    player.sendMessage("" + ChatColor.RED + "You cannot afford " + moneyFormat + ".");
-                    return true;
-                }
-                UUID buyCode = UUID.randomUUID();
-                buyCodes.put(player.getUniqueId(), buyCode);
-                Msg.raw(player,
-                        Msg.format("&7Confirm the purchase for &r%s&7: ", moneyFormat),
-                        Msg.button("[Confirm]",
-                                   null,
-                                   "&9Confirm payment of " + moneyFormat + ".",
-                                   "/photo buy " + buyCode,
-                                   ChatColor.GOLD));
-                return true;
-            } else if (args.length == 2) {
-                UUID buyCode = buyCodes.remove(player.getUniqueId());
-                if (buyCode == null) return false;
-                UUID code;
-                try {
-                    code = UUID.fromString(args[1]);
-                } catch (IllegalArgumentException iae) {
-                    return false;
-                }
-                if (!buyCode.equals(code)) return false;
-                if (!plugin.economy.has(player, plugin.blankPrice)
-                    || !plugin.economy.withdrawPlayer(player, plugin.blankPrice).transactionSuccess()) {
-                    player.sendMessage("" + ChatColor.RED + "You cannot afford " + moneyFormat + ".");
-                    return true;
-                }
-                UUID uuid = player.getUniqueId();
-                plugin.photosConfig.addPlayerBlanks(uuid, 1);
-                plugin.photosConfig.saveConfig();
-                plugin.getLogger().info(player.getName() + " bought a blank photo for " + moneyFormat);
-                sender.sendMessage("" + ChatColor.GREEN + "[Photos] Bought a blank photo. You now have " + plugin.photosConfig.getPlayerBlanks(uuid) + " blanks.");
-                return true;
+        if (args[0].equals("color")) {
+            Color color = photo != null ? Color.fromRGB(photo.getColor()) : Color.fromRGB(0);
+            switch (args.length) {
+            case 2:
+                List<String> tabs = new ArrayList<>();
+                tabs.add("" + color.getRed());
+                for (PhotoColor pc: PhotoColor.values()) tabs.add(pc.name().toLowerCase());
+                return tabComplete(args[1], tabs);
+            case 3: return tabComplete(args[2], Arrays.asList("" + color.getGreen()));
+            case 4: return tabComplete(args[3], Arrays.asList("" + color.getBlue()));
+            default: return Collections.emptyList();
             }
         }
-        sender.sendMessage("" + ChatColor.YELLOW + "Usage: /photo [args...]");
-        if (player != null) sender.sendMessage("" + ChatColor.BLUE   + "Blank Photos left: " + ChatColor.WHITE + plugin.photosConfig.getPlayerBlanks(player));
-        sender.sendMessage("" + ChatColor.GRAY   + "--- SYNOPSIS ---");
-        sender.sendMessage("" + ChatColor.YELLOW + "/photo menu");
-        sender.sendMessage("" + ChatColor.GRAY   + "View a menu with all your photos.");
-        sender.sendMessage("" + ChatColor.YELLOW + "/photo create [name]");
-        sender.sendMessage("" + ChatColor.GRAY   + "Create a photo with the give name.");
-        sender.sendMessage("" + ChatColor.YELLOW + "/photo rename <url>");
-        sender.sendMessage("" + ChatColor.GRAY   + "Change the name of a photo.");
-        sender.sendMessage("" + ChatColor.YELLOW + "/photo load <url>");
-        sender.sendMessage("" + ChatColor.GRAY   + "Load a photo from the internet onto the map in your hand.");
-        sender.sendMessage("" + ChatColor.YELLOW + "/photo buy");
-        sender.sendMessage("" + ChatColor.GRAY   + "Buy a new blank photo for " + plugin.economy.format(plugin.blankPrice) + ".");
-        if (sender.hasPermission("photos.admin")) {
-            sender.sendMessage("" + ChatColor.YELLOW + "/photo grant <player> <#photos>");
-            sender.sendMessage("" + ChatColor.GRAY   + "Give a player more blank photos");
-            sender.sendMessage("" + ChatColor.YELLOW + "/photo reload");
-            sender.sendMessage("" + ChatColor.GRAY   + "Reload the configuration");
-            sender.sendMessage("" + ChatColor.YELLOW + "/photo save");
-            sender.sendMessage("" + ChatColor.GRAY   + "Save the configuration");
+        if (args.length == 2) {
+            switch (args[0]) {
+            case "load": return tabComplete(args[1], Arrays.asList(plugin.getDefaultDownloadURL()));
+            case "name": return tabComplete(args[1], Arrays.asList(photo != null ? photo.getName() : "Photo"));
+            default: return Collections.emptyList();
+            }
         }
-        return true;
+        return null;
+    }
+
+    List<String> tabComplete(String arg, List<String> args) {
+        return args.stream().filter(i -> i.startsWith(arg)).collect(Collectors.toList());
+    }
+
+    void suggestPhotoCommands(Player player, Photo photo) {
+        Color color = Color.fromRGB(photo.getColor());
+        player.spigot().sendMessage(new ComponentBuilder("Photo").color(ChatColor.LIGHT_PURPLE)
+                                    .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/photo"))
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo\n" + ChatColor.WHITE + "Open the Photos Menu.")))
+                                    .append("  ").reset()
+                                    .append("[Load]").color(ChatColor.BLUE)
+                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo load "))
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo load " + ChatColor.ITALIC + "URL\n" + ChatColor.WHITE + "Load a new picture from the internet.")))
+                                    .append("  ").reset()
+                                    .append("[Name]").color(ChatColor.YELLOW)
+                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo name " + photo.getName()))
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo rename " + ChatColor.ITALIC + "NAME\n" + ChatColor.WHITE + "Change the name of this Photo.")))
+                                    .append("  ").reset()
+                                    .append("[Color]").color(ChatColor.LIGHT_PURPLE)
+                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo color " + color.getRed() + " " + color.getGreen() + " " + color.getBlue()))
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo color " + ChatColor.RED + ChatColor.ITALIC + "RED " + ChatColor.GREEN + ChatColor.ITALIC + "GREEN " + ChatColor.BLUE + ChatColor.ITALIC + "BLUE\n" + ChatColor.LIGHT_PURPLE + "/photo color " + ChatColor.ITALIC + "COLOR\n" + ChatColor.WHITE + "Change the item color of this Photo.")))
+                                    .create());
+    }
+
+    void photoCommand(Player player, String cmd, String[] args) throws UsageError, UserError {
+        switch (cmd) {
+        case "load": {
+            if (args.length != 1) throw new UsageError();
+            ItemStack item = mapInHand(player);
+            Photo photo = photoOfMap(player, item);
+            URL url = parseURL(args[0]);
+            putOnCooldown(player);
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "Loading " + url + "...");
+            plugin.downloadPhotoAsync(photo, url, (result) -> this.acceptDownload(player, photo, url, result));
+            break;
+        }
+        case "name": {
+            if (args.length == 0) throw new UsageError();
+            ItemStack item = mapInHand(player);
+            Photo photo = photoOfMap(player, item);
+            String newName = compilePhotoName(args);
+            photo.setName(newName);
+            plugin.getDatabase().updatePhoto(photo);
+            plugin.updatePhotoItem(item, photo);
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "Updated name: " + ChatColor.WHITE + ChatColor.ITALIC + newName + ChatColor.LIGHT_PURPLE + ".");
+            break;
+        }
+        case "color": {
+            if (args.length != 1 && args.length != 3) throw new UsageError();
+            ItemStack item = mapInHand(player);
+            Photo photo = photoOfMap(player, item);
+            Color color;
+            if (args.length == 3) {
+                int r = parseColorComponent(args[0]);
+                int g = parseColorComponent(args[1]);
+                int b = parseColorComponent(args[2]);
+                color = Color.fromRGB(r, g, b);
+            } else {
+                color = parseColor(args[0]);
+            }
+            photo.setColor(color.asRGB());
+            plugin.getDatabase().updatePhoto(photo);
+            plugin.updatePhotoItem(item, photo);
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "Photo color updated.");
+            break;
+        }
+        default: throw new UsageError();
+        }
+    }
+
+    /**
+     * This is the callback for the `/photo load URL` command. See
+     * PhotoCommand#photoCommand(Player, String, String[]).
+     */
+    private void acceptDownload(Player player, Photo photo, URL url, PhotosPlugin.DownloadResult result) {
+        switch (result.status) {
+        case SUCCESS: {
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "Photo downloaded from " + url + ".");
+            break;
+        }
+        case NOT_FOUND: {
+            player.sendMessage(ChatColor.RED + "File not found: " + url + ".");
+            break;
+        }
+        case TOO_LARGE: {
+            player.sendMessage(ChatColor.RED + "This file is too large!");
+            break;
+        }
+        case NOT_IMAGE: {
+            player.sendMessage(ChatColor.RED + "This file is not an image!");
+            break;
+        }
+        case NOSAVE: {
+            player.sendMessage(ChatColor.RED + "An internal error occured. Please contact an administrator.");
+            break;
+        }
+        case UNKNOWN: {
+            if (result.exception != null) {
+                player.sendMessage(ChatColor.RED + "An error occured: " + result.exception + ".");
+                result.exception.printStackTrace();
+            } else {
+                player.sendMessage(ChatColor.RED + "An unknown error occured.");
+            }
+            break;
+        }
+        }
+    }
+
+    /**
+     * Return the map a player is holding or throw UserError.
+     */
+    ItemStack mapInHand(Player player) throws UserError {
+        if (player == null) throw new NullPointerException("Player cannot be null");
+        ItemStack result = player.getInventory().getItemInMainHand();
+        if (result == null || result.getType() != Material.FILLED_MAP) throw new UserError("Hold a photo in your hand.");
+        return result;
+    }
+
+    /**
+     * Return the Photo instance which belongs to the given map item,
+     * or throw UserError.
+     */
+    Photo photoOfMap(Player player, ItemStack item) throws UserError {
+        if (player == null) throw new NullPointerException("Player cannot be null");
+        if (item == null || item.getType() != Material.FILLED_MAP) throw new IllegalArgumentException("Item is not a map");
+        Photo result = plugin.findPhoto(item);
+        if (result == null) throw new UserError("This map is not a photo.");
+        if (!player.getUniqueId().equals(result.getOwner())) throw new UserError("This photo does not belong to you.");
+        return result;
+    }
+
+    /**
+     * Parse a URL or throw UserError.
+     */
+    URL parseURL(String arg) throws UserError {
+        if (arg == null) throw new NullPointerException("arg cannot be null");
+        try {
+            return new URL(arg);
+        } catch (MalformedURLException murle) {
+            throw new UserError("Invalid URL: " + arg + ".");
+        }
+    }
+
+    /**
+     * Put a player on cooldown or throw UserError if they are already
+     * on cooldown.
+     */
+    void putOnCooldown(Player player) throws UserError {
+        long cd = 0L;
+        for (MetadataValue meta: player.getMetadata(META_COOLDOWN)) {
+            if (meta.getOwningPlugin() == plugin) {
+                cd = meta.asLong();
+                break;
+            }
+        }
+        long now = System.nanoTime();
+        if (cd > 0 && now < cd) {
+            long wait = (cd - now) / 1000000000;
+            throw new UserError("You must wait " + wait + " seconds.");
+        }
+        cd = now + (long)plugin.getLoadCooldown() * 1000000000;
+        player.setMetadata(META_COOLDOWN, new FixedMetadataValue(plugin, cd));
+    }
+
+    /**
+     * Fold a list of arguments into the new Photo name or throw
+     * UserError if antyhing is wrong with the name.
+     */
+    String compilePhotoName(String[] args) throws UserError {
+        if (args.length == 0) throw new ArrayIndexOutOfBoundsException("args cannot be empty");
+        StringBuilder sb = new StringBuilder(args[0]);
+        for (int i = 1; i < args.length; i += 1) sb.append(" ").append(args[1]);
+        String result = ChatColor.stripColor(sb.toString());
+        if (result.length() > 127) throw new UserError("Name cannot be longer than 127 characters.");
+        return result;
+    }
+
+    /**
+     * Parse a number bettween from 0 to 255 or throw UserError.
+     */
+    int parseColorComponent(String arg) throws UserError {
+        if (arg == null) throw new NullPointerException("arg cannot be null");
+        int result;
+        try {
+            result = Integer.parseInt(arg);
+        } catch (NumberFormatException nfe) {
+            throw new UserError("Number expected: " + arg + ".");
+        }
+        if (result < 0 || result > 255) throw new UserError("Color component must be between 0 and 255.");
+        return result;
+    }
+
+    /**
+     * Parse a Color or throw UserError.
+     */
+    Color parseColor(String arg) throws UserError {
+        if (arg == null) throw new NullPointerException("arg cannot be null");
+        Color result;
+        try {
+            PhotoColor photoColor = PhotoColor.valueOf(arg.toUpperCase());
+            return photoColor.color;
+        } catch (IllegalArgumentException iae) {
+            throw new UserError("Unknown color: " + arg + ".");
+        }
     }
 }

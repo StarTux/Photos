@@ -1,8 +1,5 @@
-# MapPrice: Price for an additional copy of your map
-# BlankPrice: Price for an additional blank photo
-# LoadCooldown: Cooldown for loading images from URL
-# MaxFileSize: Maximum file size to load from URL, in KiB
-MapPrice: 1000
-BlankPrice: 100000
-LoadCooldown: 60
-MaxFileSize: 3072
+PhotoPrice: 1000.0 # Economy
+CopyPrice: 100.0 # Economy
+LoadCooldown: 60 # Seconds
+MaxFileSize: 3072 # KiB
+DefaultDownloadURL: 'https://i.imgur.com/NNvWR6B.png'

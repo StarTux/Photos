@@ -8,11 +8,6 @@
   <name>Photos</name>
   <url>https://cavetale.com</url>
   <repositories>
-    <!-- Vault Repo -->
-    <repository>
-      <id>vault-repo</id>
-      <url>http://nexus.hc.to/content/repositories/pub_releases</url>
-    </repository>
     <!-- Spigot Repo -->
     <repository>
       <id>spigot-repo</id>
@@ -24,7 +19,7 @@
     <dependency>
       <groupId>org.spigotmc</groupId>
       <artifactId>spigot-api</artifactId>
-      <version>1.13-pre7-R0.1-SNAPSHOT</version>
+      <version>1.13.1-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <!-- Lombok -->
@@ -34,22 +29,16 @@
       <version>1.14.8</version>
       <scope>provided</scope>
     </dependency>
-    <!-- Vault -->
+    <!-- GenericEvents -->
     <dependency>
-      <groupId>net.milkbowl.vault</groupId>
-      <artifactId>VaultAPI</artifactId>
-      <version>1.6</version>
-      <scope>provided</scope>
-    </dependency>
-    <!-- PlayerCache -->
-    <dependency>
-      <groupId>com.winthier.playercache</groupId>
-      <artifactId>playercache</artifactId>
+      <groupId>com.winthier.generic_events</groupId>
+      <artifactId>generic_events</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
+    <finalName>${project.name}</finalName>
     <plugins>
       <!-- Java 8 -->
       <plugin>

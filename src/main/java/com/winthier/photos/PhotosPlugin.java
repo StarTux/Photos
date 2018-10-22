@@ -1,122 +1,369 @@
 package com.winthier.photos;
 
-import java.util.Map;
-import java.util.TreeMap;
-import net.milkbowl.vault.economy.Economy;
-import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
+import javax.imageio.ImageIO;
+import lombok.Getter;
+import lombok.Value;
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class PhotosPlugin extends JavaPlugin {
-    private static PhotosPlugin instance;
-    private final Map<Short, Photo> photos = new TreeMap<Short, Photo>();
-    public final PhotosConfig photosConfig = new PhotosConfig(this);
-    public final PhotosMenu photosMenu = new PhotosMenu(this);
-    public Economy economy;
-    public double mapPrice, blankPrice;
-    public long loadCooldown;
-    public int maxFileSize;
+/**
+ * The main plugin class.
+ * An instance of this manages all Photos and configuration values,
+ * and runs some utility functions to find or modify Photos, and
+ * perform Input/Output via disk or network.
+ */
+@Getter
+public final class PhotosPlugin extends JavaPlugin {
+    private double photoPrice, copyPrice;
+    private long loadCooldown;
+    private int maxFileSize;
+    private List<Photo> photos;
+    private PhotosDatabase database;
+    private PhotoCommand photoCommand;
+    private AdminCommand adminCommand;
+    private String defaultDownloadURL;
+    private BufferedImage defaultImage;
+
+    // --- JavaPlugin
 
     @Override
     public void onEnable() {
-        instance = this;
-        reloadConfig();
-        saveDefaultConfig();
-        load();
-        getCommand("photo").setExecutor(new PhotoCommand(this));
-        if (!setupEconomy()) {
-            getLogger().warning("Economy setup failed!");
-        } else {
-            photosMenu.onEnable();
+        database = new PhotosDatabase(this);
+        if (!database.createTables()) {
+            getLogger().warning("Database error. Disabling plugin.");
+            setEnabled(false);
+            return;
         }
+        saveDefaultConfig();
+        saveResource("default.png", false);
+        importConfig();
+        loadPhotos();
+        photoCommand = new PhotoCommand(this);
+        adminCommand = new AdminCommand(this);
+        getCommand("photo").setExecutor(photoCommand);
+        getCommand("photoadmin").setExecutor(adminCommand);
+        getServer().getPluginManager().registerEvents(new InventoryListener(this), this);
     }
 
     @Override
     public void onDisable() {
-        photosMenu.onDisable();
-        instance = null;
+        for (Player player: getServer().getOnlinePlayers()) {
+            // Close all open PhotoMenus
+            InventoryView openView = player.getOpenInventory();
+            if (openView == null) continue;
+            if (openView.getTopInventory().getHolder() instanceof PhotosMenu) {
+                player.closeInventory();
+            }
+            // Remove all metadata in case we placed them.
+            player.removeMetadata(PhotoCommand.META_COOLDOWN, this);
+        }
     }
 
-    public static PhotosPlugin getInstance() {
-        return instance;
-    }
+    // --- Configuration
 
-    public void load() {
+    /**
+     * Reload and import the config.yml.
+     */
+    void importConfig() {
         // load config.yml
         reloadConfig();
-        mapPrice = getConfig().getDouble("MapPrice");
-        blankPrice = getConfig().getDouble("BlankPrice");
-        loadCooldown = getConfig().getLong("LoadCooldown");
-        maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
-        // load photos.yml
-        photos.clear();
-        photosConfig.reloadConfig();
-        for (short mapId : photosConfig.getMaps()) {
-            final Photo photo = createPhoto(mapId);
+        this.photoPrice = getConfig().getDouble("PhotoPrice");
+        this.copyPrice = getConfig().getDouble("CopyPrice");
+        this.loadCooldown = getConfig().getLong("LoadCooldown");
+        this.maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
+        this.defaultDownloadURL = getConfig().getString("DefaultDownloadURL");
+        // load default.png
+        try {
+            this.defaultImage = ImageIO.read(new File(getDataFolder(), "default.png"));
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
         }
     }
 
-    public void save() {
-        saveConfig();
-        photosConfig.saveConfig();
-    }
-
-    public Photo getPhoto(short mapId) {
-        Photo photo = photos.get(mapId);
-        return photo;
-    }
-
-    private Photo createPhoto(short mapId) {
-        Photo photo = new Photo(mapId);
-        photos.put(mapId, photo);
-        photo.initialize();
-        return photo;
-    }
-
-    public Photo createPhoto() {
-        MapView mapView = getServer().createMap(getServer().getWorlds().get(0));
-        if (!photosConfig.addMap(mapView.getId())) return null;
-        return createPhoto(mapView.getId());
-    }
-
-    public void createPhoto(Player player, String name) {
-        int blanks = photosConfig.getPlayerBlanks(player);
-        if (blanks < 1) {
-            player.sendMessage("" + ChatColor.RED + "You do not have any blank photos.");
-            return;
+    /**
+     * Load all existing photos from the database and initialize
+     * Minecraft maps so they can display them properly via
+     * PhotoRenderer.
+     */
+    boolean loadPhotos() {
+        photos = database.loadPhotos();
+        if (photos == null) {
+            getLogger().warning("Could not load photos.");
+            return false;
         }
-        Photo photo = createPhoto();
-        if (photo == null) {
-            player.sendMessage("" + ChatColor.RED + "Photo creation failed. Contact an administrator.");
-            return;
+        // Initialize maps
+        for (Photo photo: photos) {
+            MapView view = getServer().getMap((short)photo.getId());
+            if (view == null) {
+                getLogger().warning("Map id " + photo.getId() + " does not exist but has a photo in storage.");
+                continue;
+            }
+            initializeMapView(view, photo);
         }
-        photo.setOwner(player);
+        return true;
+    }
+
+    // --- Photos
+
+    /**
+     * Find Photo with given id.
+     */
+    Photo findPhoto(int id) {
+        for (Photo photo: photos) {
+            if (photo.getId() == id) return photo;
+        }
+        return null;
+    }
+
+    /**
+     * Find Photo for given map item.  The item must be a FILLED_MAP.
+     */
+    Photo findPhoto(ItemStack item) {
+        MapMeta meta = (MapMeta)item.getItemMeta();
+        int mapId = (int)meta.getMapId();
+        return findPhoto(mapId);
+    }
+
+    /**
+     * Find Photos belonging to player with given unique id.
+     */
+    List<Photo> findPhotos(UUID playerId) {
+        List<Photo> result = new ArrayList<>();
+        for (Photo photo: photos) {
+            if (playerId.equals(photo.getOwner())) result.add(photo);
+        }
+        return result;
+    }
+
+    /**
+     * Create a new Photo for the given owner, with the given name and
+     * color.
+     */
+    Photo createPhoto(UUID owner, String name, int color) {
+        MapView view = getServer().createMap(getServer().getWorlds().get(0));
+        if (view == null) return null;
+        return createPhoto(view, owner, name, color);
+    }
+
+    /**
+     * Same as above, but use an existing map id.
+     */
+    Photo createPhoto(int id, UUID owner, String name, int color) {
+        if (findPhoto(id) != null) return null;
+        MapView view = getServer().getMap((short)id);
+        if (view == null) return null;
+        return createPhoto(view, owner, name, color);
+    }
+
+    private Photo createPhoto(MapView view, UUID owner, String name, int color) {
+        Photo photo = new Photo();
+        int mapId = (int)view.getId();
+        photo.setId(mapId);
+        photo.setOwner(owner);
         photo.setName(name);
-        photosConfig.setPlayerBlanks(player, blanks - 1);
-        photosConfig.saveConfig();
-        ItemStack item = photo.createItem("" + ChatColor.GOLD + name);
-        player.getWorld().dropItem(player.getEyeLocation(), item);
-        player.sendMessage("" + ChatColor.GREEN + "Photo created. To load an image, use the following command:");
-        player.sendMessage("" + ChatColor.YELLOW + "/photo load <url>");
-        getLogger().info(player.getName() + " created map #" + photo.getMapId());
-    }
-
-    private boolean setupEconomy()
-    {
-        RegisteredServiceProvider<Economy> economyProvider = getServer().getServicesManager().getRegistration(Economy.class);
-        if (economyProvider != null) {
-            economy = economyProvider.getProvider();
+        photo.setColor(color);
+        if (!database.savePhoto(photo)) {
+            getLogger().warning("Failed to save photo with map id " + mapId);
         }
-        return (economy != null);
+        initializeMapView(view, photo);
+        photos.add(photo);
+        return photo;
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String args[]) {
-        return false;
+    /**
+     * Update a Map item to corresponds with the given Photo.
+     */
+    void updatePhotoItem(ItemStack item, Photo photo) {
+        MapMeta meta = (MapMeta)item.getItemMeta();
+        meta.setMapId(photo.getId());
+        meta.setScaling(false);
+        meta.setColor(Color.fromRGB(photo.getColor()));
+        meta.setLocationName(photo.getName());
+        meta.setDisplayName(photo.getName());
+        meta.setLocalizedName("Photo");
+        item.setItemMeta(meta);
+    }
+
+    /**
+     * Spawn a new Map item which corresponds with the given Photo.
+     */
+    ItemStack createPhotoItem(Photo photo) {
+        ItemStack result = new ItemStack(Material.FILLED_MAP);
+        updatePhotoItem(result, photo);
+        return result;
+    }
+
+    /**
+     * Set up a single map view so it can display the given Photo.
+     */
+    public void initializeMapView(MapView view, Photo photo) {
+        if (view == null) return;
+        view.setCenterX(0x7fffffff);
+        view.setCenterZ(0x7fffffff);
+        view.setScale(MapView.Scale.FARTHEST);
+        for (MapRenderer renderer : new ArrayList<>(view.getRenderers())) {
+            view.removeRenderer(renderer);
+        }
+        view.addRenderer(new PhotoRenderer(this, photo));
+    }
+
+    /**
+     * Delete a photo from memory cache and database.
+     */
+    public boolean deletePhoto(Photo photo) {
+        photos.remove(photo);
+        return database.deletePhoto(photo.getId());
+    }
+
+    // --- Photo I/O
+
+    /**
+     * Simple enum to be contained in DownloadResult (see below) to
+     * inform clients of downloadImage() or downloadImage() about
+     * the result of the operation.
+     */
+    enum DownloadStatus {
+        SUCCESS,
+        NOT_FOUND,
+        TOO_LARGE,
+        NOT_IMAGE,
+        NOSAVE,
+        UNKNOWN;
+        DownloadResult make(BufferedImage image) {
+            return new DownloadResult(this, image, null);
+        }
+        DownloadResult make() {
+            return new DownloadResult(this, null, null);
+        }
+        DownloadResult make(Exception exception) {
+            return new DownloadResult(this, null, exception);
+        }
+    }
+
+    /**
+     * Simple container for DownloadStatus, BufferedImage, and
+     * Exception.  The status may not be null.
+     */
+    @Value
+    static final class DownloadResult {
+        public final DownloadStatus status;
+        public final BufferedImage image;
+        public final Exception exception;
+    }
+
+    /**
+     * Download an image with the given URL and return an informative
+     * DownloadResult.
+     * The image will be scaled to 128x128 pixels if necessary.
+     */
+    DownloadResult downloadImage(URL url) {
+        try {
+            URLConnection urlConnection = url.openConnection();
+            if (urlConnection.getContentLength() > maxFileSize) return DownloadStatus.TOO_LARGE.make();
+            InputStream in = urlConnection.getInputStream();
+            byte[] buf = new byte[maxFileSize];
+            int r = -1;
+            for (int total = 0; total < maxFileSize;) {
+                r = in.read(buf, total, maxFileSize - total);
+                if (r == 0) return DownloadStatus.NOT_FOUND.make();
+                if (r == -1) break;
+                total += r;
+            }
+            in.close();
+            if (r != -1) return DownloadStatus.TOO_LARGE.make();
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(buf));
+            if (image == null) return DownloadStatus.NOT_IMAGE.make();
+            if (image.getWidth() != 128 || image.getHeight() != 128) {
+                Image scaled = image.getScaledInstance(128, 128, BufferedImage.SCALE_DEFAULT);
+                if (scaled instanceof BufferedImage) {
+                    image = (BufferedImage)scaled;
+                } else {
+                    image = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D gfx = image.createGraphics();
+                    gfx.drawImage(scaled, 0, 0, null);
+                    gfx.dispose();
+                }
+            }
+            return DownloadStatus.SUCCESS.make(image);
+        } catch (IOException ioe) {
+            return DownloadStatus.UNKNOWN.make(ioe);
+        }
+    }
+
+    /**
+     * Load a single image from a file with path
+     * `plugins/Photos/photos/$path`.  The path is expected to come
+     * from Photo#filename.
+     */
+    BufferedImage loadImage(String path) {
+        try {
+            File dir = new File(getDataFolder(), "photos");
+            dir.mkdirs();
+            File file = new File(dir, path);
+            if (!file.isFile() && !file.canRead()) return null;
+            return ImageIO.read(file);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            return null;
+        }
+    }
+
+    void loadImageAsync(String path, Consumer<BufferedImage> callback) {
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                BufferedImage image = loadImage(path);
+                Bukkit.getScheduler().runTask(this, () -> callback.accept(image));
+            });
+    }
+
+    void downloadPhotoAsync(final Photo photo, final URL url, final Consumer<DownloadResult> callback) {
+        final File dir = new File(getDataFolder(), "photos");
+        final File file = new File(dir, photo.filename());
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+                DownloadResult result = downloadImage(url);
+                final boolean saved;
+                if (result.image != null) {
+                    boolean s = false;
+                    try {
+                        dir.mkdirs();
+                        ImageIO.write(result.image, "png", file);
+                        s = true;
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
+                    }
+                    saved = s;
+                } else {
+                    saved = false;
+                }
+                Bukkit.getScheduler().runTask(this, () -> {
+                        if (saved) {
+                            MapView view = getServer().getMap((short)photo.getId());
+                            if (view != null) initializeMapView(view, photo);
+                            callback.accept(result);
+                        } else {
+                            callback.accept(DownloadStatus.NOSAVE.make());
+                        }
+                    });
+            });
     }
 }

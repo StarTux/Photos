@@ -1,127 +1,152 @@
 package com.winthier.photos;
 
+import com.winthier.generic_events.GenericEvents;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.MapMeta;
 
-public class PhotosMenu implements Listener {
+/**
+ * An instance of this class contains all information for an opened
+ * PhotosMenu, which is a chest GUI.  This class implements
+ * InventoryHolder so a reference can be stored in the actual
+ * inventory and identified by the PhotosPlugin or InventoryListener.
+ *
+ * To open a PhotosMenu, call `new PhotosMenu(Plugin).open(Player)`.
+ */
+@Getter
+@RequiredArgsConstructor
+final class PhotosMenu implements InventoryHolder {
     private final PhotosPlugin plugin;
-    private Map<UUID, InventoryView> openMenus = new HashMap<UUID, InventoryView>();
-    private boolean enabled;
+    private Inventory inventory;
+    private List<Photo> photos;
 
-    public PhotosMenu(PhotosPlugin plugin) {
-        this.plugin = plugin;
+    /**
+     * Open the menu for a player.  This will create an inventory
+     * fitting for the given player's Photo collection, and populate
+     * it with clickable items.
+     */
+    InventoryView open(Player player) {
+        this.photos = this.plugin.findPhotos(player.getUniqueId());
+        // Create the inventory
+        int photoRows = (this.photos.size() - 1) / 9 + 1;
+        this.inventory = this.plugin.getServer().createInventory(this, photoRows * 9 + 9, ChatColor.DARK_PURPLE + "Photos Menu");
+        for (int i = 0; i < this.photos.size(); i += 1) {
+            Photo photo = this.photos.get(i);
+            ItemStack item = this.plugin.createPhotoItem(photo);
+            ItemMeta meta = item.getItemMeta();
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + photo.getName());
+            String[] lore = {
+                "" + ChatColor.LIGHT_PURPLE + "Copy for " + ChatColor.WHITE + GenericEvents.formatMoney(plugin.getCopyPrice()),
+                "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "CLICK " + ChatColor.WHITE + "information",
+                "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "SHIFT+CLICK " + ChatColor.WHITE + "buy a copy"
+            };
+            meta.setLore(Arrays.asList(lore));
+            item.setItemMeta(meta);
+            this.inventory.addItem(item);
+        }
+        ItemStack item = new ItemStack(Material.MAP);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "New Photo for " + ChatColor.WHITE + GenericEvents.formatMoney(plugin.getPhotoPrice()));
+        String[] lore = {
+            "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "CLICK " + ChatColor.WHITE + "information.",
+            "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "SHIFT+CLICK " + ChatColor.WHITE + "buy a new Photo."
+        };
+        meta.setLore(Arrays.asList(lore));
+        item.setItemMeta(meta);
+        inventory.setItem(photoRows * 9 + 4, item);
+        return player.openInventory(inventory);
     }
 
-    public void onEnable() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        enabled = true;
+    void onInventoryOpen(InventoryOpenEvent event) {
     }
 
-    public void onDisable() {
-        for (InventoryView view : openMenus.values()) view.close();
-        openMenus.clear();
+    void onInventoryClose(InventoryCloseEvent event) {
+        inventory.clear();
+        inventory = null;
+        photos = null;
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onCraftItem(CraftItemEvent event) {
+    /**
+     * Copies of Photos are made via shift and left click.
+     */
+    void onInventoryClick(InventoryClickEvent event) {
+        event.setCancelled(true);
+        if (event.getClickedInventory() == null) return;
+        if (!event.getClickedInventory().equals(event.getInventory())) return;
         ItemStack item = event.getCurrentItem();
-        if (item != null && item.getType() == Material.MAP) {
-            short mapId = item.getDurability();
-            if (plugin.photosConfig.hasMap(mapId)) {
-                Player player = (Player)event.getWhoClicked();
-                player.sendMessage("" + ChatColor.RED + "You can't duplicate photos");
-                event.setCancelled(true);
+        Player player = (Player)event.getWhoClicked();
+        if (item == null || item.getType() == Material.AIR) return;
+        if (item.getType() == Material.FILLED_MAP) {
+            // Player clicked a Photo
+            Photo photo = this.plugin.findPhoto(item);
+            double price = this.plugin.getCopyPrice();
+            if (photo == null || !player.getUniqueId().equals(photo.getOwner())) return;
+            if (event.isLeftClick() && event.isShiftClick()) {
+                    // Purchase
+                    if (!GenericEvents.takePlayerMoney(player.getUniqueId(), price, this.plugin, "Copy Photo")) {
+                        player.sendMessage(ChatColor.RED + "You can't pay " + GenericEvents.formatMoney(price) + "!");
+                        return;
+                    }
+                    player.sendMessage(ChatColor.LIGHT_PURPLE + "Made one copy of " + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + photo.getName() + ChatColor.WHITE + " for " + ChatColor.LIGHT_PURPLE + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+                    for (ItemStack drop: player.getInventory().addItem(plugin.createPhotoItem(photo)).values()) {
+                        player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
+                        player.sendMessage("" + ChatColor.RED + ChatColor.BOLD + "Careful!" + ChatColor.RED + " Your inventory is full. The copy was dropped.");
+                    }
+                    player.playSound(player.getEyeLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, SoundCategory.MASTER, 0.5f, 0.75f);
+                    return;
+            } else if (event.isLeftClick()) {
+                player.sendMessage(ChatColor.LIGHT_PURPLE + "SHIFT+CLICK" + ChatColor.WHITE + " to make a copy of " + ChatColor.GRAY + ChatColor.ITALIC + photo.getName() + ChatColor.WHITE + " for " + ChatColor.LIGHT_PURPLE + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+            } else if (event.isRightClick()) {
+                // Maybe a detailed menu?
+                return;
+            }
+        } else if (item.getType() == Material.MAP) {
+            // Player clicked the "Buy New Photo" icon.
+            double price = this.plugin.getPhotoPrice();
+            if (event.isLeftClick() && event.isShiftClick()) {
+                if (!GenericEvents.takePlayerMoney(player.getUniqueId(), price, this.plugin, "Buy New Photo")) {
+                    player.sendMessage(ChatColor.RED + "You can't pay " + GenericEvents.formatMoney(price) + "!");
+                    return;
+                }
+                player.sendMessage(ChatColor.LIGHT_PURPLE + "Purchased a new Photo for " + ChatColor.LIGHT_PURPLE + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+                Photo photo = this.plugin.createPhoto(player.getUniqueId(), "Photo " + (photos.size() + 1), PhotoColor.random().color.asRGB());
+                if (photo == null) {
+                    this.plugin.getLogger().warning("Could not create Photo for " + player.getName() + "!");
+                    player.sendMessage(ChatColor.DARK_RED + "Something went wrong during Photo creation. Please contact an administrator.");
+                    GenericEvents.givePlayerMoney(player.getUniqueId(), price, this.plugin, "Photo Refund");
+                    return;
+                }
+                for (ItemStack drop: player.getInventory().addItem(plugin.createPhotoItem(photo)).values()) {
+                    player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
+                    player.sendMessage("" + ChatColor.RED + ChatColor.BOLD + "Careful!" + ChatColor.RED + " Your inventory is full. The Photo was dropped.");
+                }
+                this.plugin.getPhotoCommand().suggestPhotoCommands(player, photo);
+                Bukkit.getScheduler().runTask(plugin, () -> new PhotosMenu(plugin).open(player));
+                player.playSound(player.getEyeLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, SoundCategory.MASTER, 0.5f, 0.75f);
+            } else if (event.isLeftClick()) {
+                player.sendMessage(ChatColor.LIGHT_PURPLE + "SHIFT+CLICK" + ChatColor.WHITE + " to buy a new Photo for " + ChatColor.LIGHT_PURPLE + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
             }
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        openMenus.remove(event.getPlayer().getUniqueId());
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (openMenus.get(event.getWhoClicked().getUniqueId()) != null) {
-            event.setCancelled(true);
-            if (event.isShiftClick() && event.getRawSlot() < event.getView().getTopInventory().getSize()) {
-                Player player = (Player)event.getWhoClicked();
-                ItemStack item = event.getCurrentItem();
-                if (item != null && item.getType() == Material.MAP) {
-                    if (!plugin.economy.has(player, plugin.mapPrice)) {
-                        player.sendMessage("" + ChatColor.RED + "You do not have enough money");
-                        return;
-                    }
-                    if (!plugin.economy.withdrawPlayer(player, plugin.mapPrice).transactionSuccess()) {
-                        player.sendMessage("" + ChatColor.RED + "Payment error");
-                        return;
-                    }
-                    player.sendMessage("" + ChatColor.GREEN + "Purchased for " + plugin.economy.format(plugin.mapPrice));
-                    short id = item.getDurability();
-                    Photo photo = plugin.getPhoto(id);
-                    ItemStack drop = photo.createItem(item.getItemMeta().getDisplayName());
-                    player.getWorld().dropItem(player.getEyeLocation(), drop);
-                    Location loc = player.getLocation();
-                    plugin.getLogger().info(String.format("Player %s bought map #%d in %s at %d,%d,%d", player.getName(), id, loc.getWorld().getName(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
-                }
-                if (item != null && item.getType() == Material.MAP) {
-                    plugin.createPhoto(player, "Photo");
-                }
-            }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onInventoryDrag(InventoryDragEvent event) {
-        if (openMenus.get(event.getWhoClicked().getUniqueId()) != null) {
-            event.setCancelled(true);
-        }
-    }
-
-    public void openMenu(Player player) {
-        if (!enabled) return;
-        List<Short> list = plugin.photosConfig.getPlayerMaps(player);
-        int size = ((list.size() + 1 - 1) / 9 + 1) * 9;
-        Inventory inventory = plugin.getServer().createInventory(player, size, "Photos Menu");
-        for (Short id : list) {
-            ItemStack item = new ItemStack(Material.MAP, 1, id);
-            String name = plugin.photosConfig.getMapName(id);
-            ItemMeta meta = item.getItemMeta();
-            if (name != null) meta.setDisplayName("" + ChatColor.GOLD + name);
-            else meta.setDisplayName("" + ChatColor.GOLD + "Map");
-            meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to buy",
-                                       "" + ChatColor.BLUE + "a copy for " + ChatColor.WHITE + plugin.economy.format(plugin.mapPrice)));
-            item.setItemMeta(meta);
-            inventory.addItem(item);
-        } {
-            ItemStack item = new ItemStack(Material.MAP);
-            ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName("" + ChatColor.DARK_GRAY + "New Photo");
-            meta.setLore(Arrays.asList("" + ChatColor.BLUE + "Shift click to create",
-                                       "" + ChatColor.BLUE + "a new blank photo.",
-                                       "" + ChatColor.BLUE + "Blank photos left: " + ChatColor.WHITE + plugin.photosConfig.getPlayerBlanks(player)));
-            item.setItemMeta(meta);
-            inventory.addItem(item);
-        }
-        InventoryView view = player.openInventory(inventory);
-        openMenus.put(player.getUniqueId(), view);
-        player.sendMessage("" + ChatColor.GREEN + "Photos Menu");
+    void onInventoryDrag(InventoryDragEvent event) {
+        event.setCancelled(true);
     }
 }
