@@ -30,6 +30,7 @@ commands:
       /photoadmin grant <player> - Give new Photo
       /photoadmin spawn <player> <id> - Give copy of Photo
       /photoadmin delete <id> - Delete Photo
+      /photoadmin reload - Reload config and photos
 photo:
   photos.photo:
     description: Use the /photo command

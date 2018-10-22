@@ -49,7 +49,7 @@ final class AdminCommand implements CommandExecutor {
         case "create": {
             if (args.length != 0 && args.length != 1) return false;
             if (args.length == 0) {
-                Photo photo = plugin.createPhoto(null, "Admin Photo", 0);
+                Photo photo = this.plugin.createPhoto(null, "Admin Photo", 0);
                 if (photo == null) {
                     sender.sendMessage("Failed to create new photo.");
                 } else {
@@ -58,7 +58,7 @@ final class AdminCommand implements CommandExecutor {
             } else {
                 int id;
                 id = parseInt(args[0]);
-                Photo photo = plugin.createPhoto(id, null, "Admin Photo", 0);
+                Photo photo = this.plugin.createPhoto(id, null, "Admin Photo", 0);
                 if (photo == null) {
                     sender.sendMessage("Failed to create Photo #" + id);
                 } else {
@@ -128,7 +128,7 @@ final class AdminCommand implements CommandExecutor {
         case "grant": {
             if (args.length != 1) return false;
             UUID uuid = parsePlayer(args[0]);
-            Photo photo = plugin.createPhoto(uuid, "Photo", 0);
+            Photo photo = this.plugin.createPhoto(uuid, "Photo", 0);
             sender.sendMessage("Granted one new Photo to " + args[0] + ".");
             return true;
         }
@@ -147,8 +147,16 @@ final class AdminCommand implements CommandExecutor {
         case "delete": {
             if (args.length != 1) return false;
             Photo photo = parsePhoto(args[0]);
-            plugin.deletePhoto(photo);
+            this.plugin.deletePhoto(photo);
             sender.sendMessage("Photo #" + photo.getId() + " deleted.");
+            return true;
+        }
+        case "reload": {
+            if (args.length != 0) return false;
+            this.plugin.importConfig();
+            this.plugin.loadPhotos();
+            sender.sendMessage("Config and Photos reloaded.");
+            return true;
         }
         default: return false;
         }
