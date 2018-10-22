@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -30,11 +29,11 @@ import org.bukkit.metadata.MetadataValue;
  * This command is run by normal users, so all input has to be double
  * checked for potential malicious behavior.
  */
-public class PhotoCommand implements TabExecutor {
+final class PhotoCommand implements TabExecutor {
     public final PhotosPlugin plugin;
     static final String META_COOLDOWN = "photos.cooldown";
 
-    public PhotoCommand(PhotosPlugin plugin) {
+    PhotoCommand(PhotosPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -215,7 +214,7 @@ public class PhotoCommand implements TabExecutor {
             player.sendMessage(ChatColor.RED + "An internal error occured. Please contact an administrator.");
             break;
         }
-        case UNKNOWN: {
+        case UNKNOWN: default: {
             if (result.exception != null) {
                 player.sendMessage(ChatColor.RED + "An error occured: " + result.exception + ".");
                 result.exception.printStackTrace();
