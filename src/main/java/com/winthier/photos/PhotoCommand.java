@@ -151,7 +151,7 @@ final class PhotoCommand implements TabExecutor {
             URL url = parseURL(args[0]);
             putOnCooldown(player);
             player.sendMessage(ChatColor.LIGHT_PURPLE + "Loading " + url + "...");
-            plugin.downloadPhotoAsync(photo, url, (result) -> this.acceptDownload(player, photo, url, result));
+            plugin.downloadPhotoAsync(photo, url, false, (result) -> this.acceptDownload(player, photo, url, result));
             break;
         }
         case "name": {

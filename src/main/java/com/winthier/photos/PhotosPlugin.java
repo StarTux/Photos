@@ -277,38 +277,54 @@ public final class PhotosPlugin extends JavaPlugin {
      * DownloadResult.
      * The image will be scaled to 128x128 pixels if necessary.
      */
-    DownloadResult downloadImage(URL url) {
+    DownloadResult downloadImage(URL url, boolean adminOverride) {
         try {
             URLConnection urlConnection = url.openConnection();
-            if (urlConnection.getContentLength() > maxFileSize) return DownloadStatus.TOO_LARGE.make();
+            int contentLength = urlConnection.getContentLength();
+            if (contentLength < 0) contentLength = maxFileSize;
+            if (!adminOverride && contentLength > maxFileSize) return DownloadStatus.TOO_LARGE.make();
             InputStream in = urlConnection.getInputStream();
-            byte[] buf = new byte[maxFileSize];
+            byte[] buf = new byte[contentLength];
             int r = -1;
-            for (int total = 0; total < maxFileSize;) {
-                r = in.read(buf, total, maxFileSize - total);
+            for (int total = 0; total < contentLength;) {
+                r = in.read(buf, total, contentLength - total);
                 if (r == 0) return DownloadStatus.NOT_FOUND.make();
                 if (r == -1) break;
                 total += r;
             }
             in.close();
-            if (r != -1) return DownloadStatus.TOO_LARGE.make();
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(buf));
             if (image == null) return DownloadStatus.NOT_IMAGE.make();
+            // Crop
+            if (image.getWidth() > image.getHeight()) {
+                BufferedImage cropped = new BufferedImage(image.getHeight(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gfx = cropped.createGraphics();
+                gfx.drawImage(image, (image.getWidth() - image.getHeight()) / -2, 0, null);
+                gfx.dispose();
+                image = cropped;
+            } else if (image.getHeight() > image.getWidth()) {
+                BufferedImage cropped = new BufferedImage(image.getWidth(), image.getWidth(), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D gfx = cropped.createGraphics();
+                gfx.drawImage(image, 0, (image.getHeight() - image.getWidth()) / -2, null);
+                gfx.dispose();
+                image = cropped;
+            }
             if (image.getWidth() != 128 || image.getHeight() != 128) {
-                Image scaled = image.getScaledInstance(128, 128, BufferedImage.SCALE_DEFAULT);
-                if (scaled instanceof BufferedImage) {
-                    image = (BufferedImage)scaled;
-                } else {
-                    image = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D gfx = image.createGraphics();
-                    gfx.drawImage(scaled, 0, 0, null);
-                    gfx.dispose();
-                }
+                image = toBufferedImage(image.getScaledInstance(128, 128, Image.SCALE_SMOOTH));
             }
             return DownloadStatus.SUCCESS.make(image);
         } catch (IOException ioe) {
-            return DownloadStatus.UNKNOWN.make(ioe);
+            return DownloadStatus.NOT_IMAGE.make(ioe);
         }
+    }
+
+    private static BufferedImage toBufferedImage(Image image) {
+        if (image instanceof BufferedImage) return (BufferedImage)image;
+        BufferedImage result = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gfx = result.createGraphics();
+        gfx.drawImage(image, 0, 0, null);
+        gfx.dispose();
+        return result;
     }
 
     /**
@@ -336,32 +352,28 @@ public final class PhotosPlugin extends JavaPlugin {
             });
     }
 
-    void downloadPhotoAsync(final Photo photo, final URL url, final Consumer<DownloadResult> callback) {
+    void downloadPhotoAsync(final Photo photo, final URL url, final boolean adminOverride, final Consumer<DownloadResult> callback) {
         final File dir = new File(getDataFolder(), "photos");
         final File file = new File(dir, photo.filename());
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-                DownloadResult result = downloadImage(url);
-                final boolean saved;
-                if (result.image != null) {
-                    boolean s = false;
+                DownloadResult result = downloadImage(url, adminOverride);
+                if (result.status == DownloadStatus.SUCCESS) {
                     try {
                         dir.mkdirs();
                         ImageIO.write(result.image, "png", file);
-                        s = true;
                     } catch (IOException ioe) {
                         ioe.printStackTrace();
+                        result = DownloadStatus.NOSAVE.make();
                     }
-                    saved = s;
-                } else {
-                    saved = false;
                 }
+                final DownloadResult finalResult = result;
                 Bukkit.getScheduler().runTask(this, () -> {
-                        if (saved) {
+                        if (finalResult.status == DownloadStatus.SUCCESS) {
                             MapView view = getServer().getMap((short)photo.getId());
                             if (view != null) initializeMapView(view, photo);
-                            callback.accept(result);
+                            callback.accept(finalResult);
                         } else {
-                            callback.accept(DownloadStatus.NOSAVE.make());
+                            callback.accept(finalResult);
                         }
                     });
             });

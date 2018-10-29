@@ -111,7 +111,7 @@ final class AdminCommand implements CommandExecutor {
             } catch (MalformedURLException murle) {
                 throw new AdminException("Invalid URL: " + args[1]);
             }
-            this.plugin.downloadPhotoAsync(photo, url, (result) -> {
+            this.plugin.downloadPhotoAsync(photo, url, true, (result) -> {
                     sender.sendMessage("Download URL (" + url + ") to Photo #" + photo.getId() + ": " + result.status);
                 });
             return true;
