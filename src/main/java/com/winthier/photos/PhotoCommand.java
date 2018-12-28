@@ -289,7 +289,7 @@ final class PhotoCommand implements TabExecutor {
     String compilePhotoName(String[] args) throws UserError {
         if (args.length == 0) throw new ArrayIndexOutOfBoundsException("args cannot be empty");
         StringBuilder sb = new StringBuilder(args[0]);
-        for (int i = 1; i < args.length; i += 1) sb.append(" ").append(args[1]);
+        for (int i = 1; i < args.length; i += 1) sb.append(" ").append(args[i]);
         String result = ChatColor.stripColor(sb.toString());
         if (result.length() > 127) throw new UserError("Name cannot be longer than 127 characters.");
         return result;
