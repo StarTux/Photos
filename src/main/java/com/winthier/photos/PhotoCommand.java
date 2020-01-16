@@ -134,7 +134,7 @@ final class PhotoCommand implements TabExecutor {
                                     .append("  ").reset()
                                     .append("[Name]").color(ChatColor.YELLOW)
                                     .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo name " + photo.getName()))
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo rename " + ChatColor.ITALIC + "NAME\n" + ChatColor.WHITE + "Change the name of this Photo.")))
+                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo name " + ChatColor.ITALIC + "NAME\n" + ChatColor.WHITE + "Change the name of this Photo.")))
                                     .append("  ").reset()
                                     .append("[Color]").color(ChatColor.LIGHT_PURPLE)
                                     .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo color " + color.getRed() + " " + color.getGreen() + " " + color.getBlue()))
@@ -154,7 +154,7 @@ final class PhotoCommand implements TabExecutor {
             plugin.downloadPhotoAsync(photo, url, false, (result) -> this.acceptDownload(player, photo, url, result));
             break;
         }
-        case "name": {
+        case "name": case "rename": {
             if (args.length == 0) throw new UsageError();
             ItemStack item = mapInHand(player);
             Photo photo = photoOfMap(player, item);

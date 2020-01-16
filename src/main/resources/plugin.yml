@@ -1,10 +1,10 @@
+main: com.winthier.photos.PhotosPlugin
 name: Photos
 description: Load images onto maps
 author: StarTux
 version: 0.1
 api-version: 1.13
-website: https://cavetale.com
-main: com.winthier.photos.PhotosPlugin
+website: https://github.com/StarTux/Photos
 commands:
   photo:
     aliases: [ photos ]
