@@ -7,7 +7,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -29,13 +31,10 @@ import org.bukkit.metadata.MetadataValue;
  * This command is run by normal users, so all input has to be double
  * checked for potential malicious behavior.
  */
+@RequiredArgsConstructor
 final class PhotoCommand implements TabExecutor {
     public final PhotosPlugin plugin;
     static final String META_COOLDOWN = "photos.cooldown";
-
-    PhotoCommand(PhotosPlugin plugin) {
-        this.plugin = plugin;
-    }
 
     /**
      * An exception to be thrown whenever the command sender is to be
@@ -51,7 +50,7 @@ final class PhotoCommand implements TabExecutor {
      * is aborted.
      */
     static final class UserError extends Exception {
-        UserError(String message) {
+        UserError(final String message) {
             super(message);
         }
     }
@@ -67,10 +66,11 @@ final class PhotoCommand implements TabExecutor {
             sender.sendMessage("Player expected");
             return true;
         }
-        Player player = (Player)sender;
+        Player player = (Player) sender;
         if (args.length == 0) {
             new PhotosMenu(plugin).open(player);
-            player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.25f, 2.0f);
+            player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER,
+                             0.25f, 2.0f);
             return true;
         } else {
             try {
@@ -85,9 +85,10 @@ final class PhotoCommand implements TabExecutor {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+    public List<String> onTabComplete(CommandSender sender, Command command,
+                                      String label, String[] args) {
         if (!(sender instanceof Player)) return null;
-        Player player = (Player)sender;
+        Player player = (Player) sender;
         ItemStack item = player.getInventory().getItemInHand();
         Photo photo = null;
         if (item != null && item.getType() == Material.FILLED_MAP) photo = plugin.findPhoto(item);
@@ -111,7 +112,8 @@ final class PhotoCommand implements TabExecutor {
         if (args.length == 2) {
             switch (args[0]) {
             case "load": return tabComplete(args[1], Arrays.asList(plugin.getDefaultDownloadURL()));
-            case "name": return tabComplete(args[1], Arrays.asList(photo != null ? photo.getName() : "Photo"));
+            case "name": return tabComplete(args[1], Arrays.asList(photo != null
+                                                                   ? photo.getName() : "Photo"));
             default: return Collections.emptyList();
             }
         }
@@ -124,22 +126,40 @@ final class PhotoCommand implements TabExecutor {
 
     void suggestPhotoCommands(Player player, Photo photo) {
         Color color = Color.fromRGB(photo.getColor());
-        player.spigot().sendMessage(new ComponentBuilder("Photo").color(ChatColor.LIGHT_PURPLE)
-                                    .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/photo"))
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo\n" + ChatColor.WHITE + "Open the Photos Menu.")))
-                                    .append("  ").reset()
-                                    .append("[Load]").color(ChatColor.BLUE)
-                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo load "))
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo load " + ChatColor.ITALIC + "URL\n" + ChatColor.WHITE + "Load a new picture from the internet.")))
-                                    .append("  ").reset()
-                                    .append("[Name]").color(ChatColor.YELLOW)
-                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo name " + photo.getName()))
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo name " + ChatColor.ITALIC + "NAME\n" + ChatColor.WHITE + "Change the name of this Photo.")))
-                                    .append("  ").reset()
-                                    .append("[Color]").color(ChatColor.LIGHT_PURPLE)
-                                    .event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo color " + color.getRed() + " " + color.getGreen() + " " + color.getBlue()))
-                                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo color " + ChatColor.RED + ChatColor.ITALIC + "RED " + ChatColor.GREEN + ChatColor.ITALIC + "GREEN " + ChatColor.BLUE + ChatColor.ITALIC + "BLUE\n" + ChatColor.LIGHT_PURPLE + "/photo color " + ChatColor.ITALIC + "COLOR\n" + ChatColor.WHITE + "Change the item color of this Photo.")))
-                                    .create());
+        ComponentBuilder cb = new ComponentBuilder("Photo").color(ChatColor.LIGHT_PURPLE);
+        BaseComponent[] tooltip;
+        cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/photo"));
+        tooltip = TextComponent.fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo\n"
+                                               + ChatColor.WHITE + "Open the Photos Menu.");
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+        cb.append("  ").reset();
+        cb.append("[Load]").color(ChatColor.BLUE);
+        cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo load "));
+        tooltip = TextComponent
+            .fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo load " + ChatColor.ITALIC + "URL\n"
+                            + ChatColor.WHITE + "Load a new picture from the internet.");
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+        cb.append("  ").reset();
+        cb.append("[Name]").color(ChatColor.YELLOW);
+        cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo name "
+                                + photo.getName()));
+        tooltip = TextComponent
+            .fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo name " + ChatColor.ITALIC + "NAME\n"
+                            + ChatColor.WHITE + "Change the name of this Photo.");
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+        cb.append("  ").reset();
+        cb.append("[Color]").color(ChatColor.LIGHT_PURPLE);
+        cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/photo color " + color.getRed()
+                                + " " + color.getGreen() + " " + color.getBlue()));
+        tooltip = TextComponent
+            .fromLegacyText(ChatColor.LIGHT_PURPLE + "/photo color "
+                            + ChatColor.RED + ChatColor.ITALIC + "RED "
+                            + ChatColor.GREEN + ChatColor.ITALIC + "GREEN "
+                            + ChatColor.BLUE + ChatColor.ITALIC + "BLUE\n"
+                            + ChatColor.LIGHT_PURPLE + "/photo color " + ChatColor.ITALIC
+                            + "COLOR\n" + ChatColor.WHITE + "Change the item color of this Photo.");
+        cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+        player.spigot().sendMessage(cb.create());
     }
 
     void photoCommand(Player player, String cmd, String[] args) throws UsageError, UserError {
@@ -151,7 +171,9 @@ final class PhotoCommand implements TabExecutor {
             URL url = parseURL(args[0]);
             putOnCooldown(player);
             player.sendMessage(ChatColor.LIGHT_PURPLE + "Loading " + url + "...");
-            plugin.downloadPhotoAsync(photo, url, false, (result) -> this.acceptDownload(player, photo, url, result));
+            plugin.downloadPhotoAsync(photo, url, false, (result) -> {
+                    acceptDownload(player, photo, url, result);
+                });
             break;
         }
         case "name": case "rename": {
@@ -162,7 +184,9 @@ final class PhotoCommand implements TabExecutor {
             photo.setName(newName);
             plugin.getDatabase().updatePhoto(photo);
             plugin.updatePhotoItem(item, photo);
-            player.sendMessage(ChatColor.LIGHT_PURPLE + "Updated name: " + ChatColor.WHITE + ChatColor.ITALIC + newName + ChatColor.LIGHT_PURPLE + ".");
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "Updated name: "
+                               + ChatColor.WHITE + ChatColor.ITALIC + newName
+                               + ChatColor.LIGHT_PURPLE + ".");
             break;
         }
         case "color": {
@@ -192,7 +216,8 @@ final class PhotoCommand implements TabExecutor {
      * This is the callback for the `/photo load URL` command. See
      * PhotoCommand#photoCommand(Player, String, String[]).
      */
-    private void acceptDownload(Player player, Photo photo, URL url, PhotosPlugin.DownloadResult result) {
+    private void acceptDownload(Player player, Photo photo, URL url,
+                                PhotosPlugin.DownloadResult result) {
         switch (result.status) {
         case SUCCESS: {
             player.sendMessage(ChatColor.LIGHT_PURPLE + "Photo downloaded from " + url + ".");
@@ -211,7 +236,8 @@ final class PhotoCommand implements TabExecutor {
             break;
         }
         case NOSAVE: {
-            player.sendMessage(ChatColor.RED + "An internal error occured. Please contact an administrator.");
+            player.sendMessage(ChatColor.RED
+                               + "An internal error occured. Please contact an administrator.");
             break;
         }
         case UNKNOWN: default: {
@@ -232,7 +258,9 @@ final class PhotoCommand implements TabExecutor {
     ItemStack mapInHand(Player player) throws UserError {
         if (player == null) throw new NullPointerException("Player cannot be null");
         ItemStack result = player.getInventory().getItemInMainHand();
-        if (result == null || result.getType() != Material.FILLED_MAP) throw new UserError("Hold a photo in your hand.");
+        if (result == null || result.getType() != Material.FILLED_MAP) {
+            throw new UserError("Hold a photo in your hand.");
+        }
         return result;
     }
 
@@ -242,10 +270,14 @@ final class PhotoCommand implements TabExecutor {
      */
     Photo photoOfMap(Player player, ItemStack item) throws UserError {
         if (player == null) throw new NullPointerException("Player cannot be null");
-        if (item == null || item.getType() != Material.FILLED_MAP) throw new IllegalArgumentException("Item is not a map");
+        if (item == null || item.getType() != Material.FILLED_MAP) {
+            throw new IllegalArgumentException("Item is not a map");
+        }
         Photo result = plugin.findPhoto(item);
         if (result == null) throw new UserError("This map is not a photo.");
-        if (!player.getUniqueId().equals(result.getOwner())) throw new UserError("This photo does not belong to you.");
+        if (!player.getUniqueId().equals(result.getOwner())) {
+            throw new UserError("This photo does not belong to you.");
+        }
         return result;
     }
 
@@ -278,7 +310,7 @@ final class PhotoCommand implements TabExecutor {
             long wait = (cd - now) / 1000000000;
             throw new UserError("You must wait " + wait + " seconds.");
         }
-        cd = now + (long)plugin.getLoadCooldown() * 1000000000;
+        cd = now + (long) plugin.getLoadCooldown() * 1000000000;
         player.setMetadata(META_COOLDOWN, new FixedMetadataValue(plugin, cd));
     }
 
@@ -291,7 +323,9 @@ final class PhotoCommand implements TabExecutor {
         StringBuilder sb = new StringBuilder(args[0]);
         for (int i = 1; i < args.length; i += 1) sb.append(" ").append(args[i]);
         String result = ChatColor.stripColor(sb.toString());
-        if (result.length() > 127) throw new UserError("Name cannot be longer than 127 characters.");
+        if (result.length() > 127) {
+            throw new UserError("Name cannot be longer than 127 characters.");
+        }
         return result;
     }
 
@@ -306,7 +340,9 @@ final class PhotoCommand implements TabExecutor {
         } catch (NumberFormatException nfe) {
             throw new UserError("Number expected: " + arg + ".");
         }
-        if (result < 0 || result > 255) throw new UserError("Color component must be between 0 and 255.");
+        if (result < 0 || result > 255) {
+            throw new UserError("Color component must be between 0 and 255.");
+        }
         return result;
     }
 

@@ -25,28 +25,28 @@ final class InventoryListener implements Listener {
     @EventHandler
     public void onInventoryOpen(InventoryOpenEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
-            ((PhotosMenu)event.getInventory().getHolder()).onInventoryOpen(event);
+            ((PhotosMenu) event.getInventory().getHolder()).onInventoryOpen(event);
         }
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
-            ((PhotosMenu)event.getInventory().getHolder()).onInventoryClose(event);
+            ((PhotosMenu) event.getInventory().getHolder()).onInventoryClose(event);
         }
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
-            ((PhotosMenu)event.getInventory().getHolder()).onInventoryClick(event);
+            ((PhotosMenu) event.getInventory().getHolder()).onInventoryClick(event);
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
-            ((PhotosMenu)event.getInventory().getHolder()).onInventoryDrag(event);
+            ((PhotosMenu) event.getInventory().getHolder()).onInventoryDrag(event);
         }
     }
 
@@ -84,7 +84,7 @@ final class InventoryListener implements Listener {
         if (photo == null) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player)) return;
-        Player player = (Player)event.getWhoClicked();
+        Player player = (Player) event.getWhoClicked();
         player.sendMessage(ChatColor.RED + "You cannot duplicate Photos. Buy a copy instead.");
     }
 }

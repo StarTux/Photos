@@ -17,7 +17,7 @@ final class PhotoRenderer extends MapRenderer {
     private boolean drawn = false;
     private BufferedImage image = null;
 
-    PhotoRenderer(PhotosPlugin plugin, Photo photo) {
+    PhotoRenderer(final PhotosPlugin plugin, final Photo photo) {
         super(false);
         this.plugin = plugin;
         this.photo = photo;
@@ -29,22 +29,22 @@ final class PhotoRenderer extends MapRenderer {
     @Override
     public void render(MapView view, MapCanvas canvas, Player player) {
         if (paused || drawn) return;
-        if (this.image == null) {
-            this.paused = true;
-            this.plugin.loadImageAsync(this.photo.filename(), this::accept);
+        if (image == null) {
+            paused = true;
+            plugin.loadImageAsync(photo.filename(), this::accept);
             return;
         }
-        canvas.drawImage(0, 0, this.image);
-        this.drawn = true;
+        canvas.drawImage(0, 0, image);
+        drawn = true;
     }
 
     void accept(BufferedImage newImage) {
         if (newImage == null) {
-            this.image = plugin.getDefaultImage();
+            image = plugin.getDefaultImage();
         } else {
-            this.image = newImage;
+            image = newImage;
         }
-        if (this.image == null) return;
+        if (image == null) return;
         paused = false;
         drawn = false;
     }

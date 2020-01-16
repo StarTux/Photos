@@ -5,6 +5,7 @@ author: StarTux
 version: 0.1
 api-version: 1.13
 website: https://github.com/StarTux/Photos
+depend: [GenericEvents]
 commands:
   photo:
     aliases: [ photos ]
@@ -31,7 +32,7 @@ commands:
       /photoadmin spawn <player> <id> - Give copy of Photo
       /photoadmin delete <id> - Delete Photo
       /photoadmin reload - Reload config and photos
-photo:
+permissions:
   photos.photo:
     description: Use the /photo command
     default: op

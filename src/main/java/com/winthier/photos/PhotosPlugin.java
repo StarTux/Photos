@@ -35,7 +35,8 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 @Getter
 public final class PhotosPlugin extends JavaPlugin {
-    private double photoPrice, copyPrice;
+    private double photoPrice;
+    private double copyPrice;
     private long loadCooldown;
     private int maxFileSize;
     private List<Photo> photos;
@@ -88,14 +89,14 @@ public final class PhotosPlugin extends JavaPlugin {
     void importConfig() {
         // load config.yml
         reloadConfig();
-        this.photoPrice = getConfig().getDouble("PhotoPrice");
-        this.copyPrice = getConfig().getDouble("CopyPrice");
-        this.loadCooldown = getConfig().getLong("LoadCooldown");
-        this.maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
-        this.defaultDownloadURL = getConfig().getString("DefaultDownloadURL");
+        photoPrice = getConfig().getDouble("PhotoPrice");
+        copyPrice = getConfig().getDouble("CopyPrice");
+        loadCooldown = getConfig().getLong("LoadCooldown");
+        maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
+        defaultDownloadURL = getConfig().getString("DefaultDownloadURL");
         // load default.png
         try {
-            this.defaultImage = ImageIO.read(new File(getDataFolder(), "default.png"));
+            defaultImage = ImageIO.read(new File(getDataFolder(), "default.png"));
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
@@ -114,9 +115,10 @@ public final class PhotosPlugin extends JavaPlugin {
         }
         // Initialize maps
         for (Photo photo: photos) {
-            MapView view = getServer().getMap((short)photo.getId());
+            MapView view = getServer().getMap((short) photo.getId());
             if (view == null) {
-                getLogger().warning("Map id " + photo.getId() + " does not exist but has a photo in storage.");
+                getLogger().warning("Map id " + photo.getId()
+                                    + " does not exist but has a photo in storage.");
                 continue;
             }
             initializeMapView(view, photo);
@@ -140,8 +142,8 @@ public final class PhotosPlugin extends JavaPlugin {
      * Find Photo for given map item.  The item must be a FILLED_MAP.
      */
     Photo findPhoto(ItemStack item) {
-        MapMeta meta = (MapMeta)item.getItemMeta();
-        int mapId = (int)meta.getMapId();
+        MapMeta meta = (MapMeta) item.getItemMeta();
+        int mapId = (int) meta.getMapId();
         return findPhoto(mapId);
     }
 
@@ -171,14 +173,14 @@ public final class PhotosPlugin extends JavaPlugin {
      */
     Photo createPhoto(int id, UUID owner, String name, int color) {
         if (findPhoto(id) != null) return null;
-        MapView view = getServer().getMap((short)id);
+        MapView view = getServer().getMap((short) id);
         if (view == null) return null;
         return createPhoto(view, owner, name, color);
     }
 
     private Photo createPhoto(MapView view, UUID owner, String name, int color) {
         Photo photo = new Photo();
-        int mapId = (int)view.getId();
+        int mapId = (int) view.getId();
         photo.setId(mapId);
         photo.setOwner(owner);
         photo.setName(name);
@@ -195,7 +197,7 @@ public final class PhotosPlugin extends JavaPlugin {
      * Update a Map item to corresponds with the given Photo.
      */
     void updatePhotoItem(ItemStack item, Photo photo) {
-        MapMeta meta = (MapMeta)item.getItemMeta();
+        MapMeta meta = (MapMeta) item.getItemMeta();
         meta.setMapId(photo.getId());
         meta.setScaling(false);
         meta.setColor(Color.fromRGB(photo.getColor()));
@@ -282,7 +284,9 @@ public final class PhotosPlugin extends JavaPlugin {
             URLConnection urlConnection = url.openConnection();
             int contentLength = urlConnection.getContentLength();
             if (contentLength < 0) contentLength = maxFileSize;
-            if (!adminOverride && contentLength > maxFileSize) return DownloadStatus.TOO_LARGE.make();
+            if (!adminOverride && contentLength > maxFileSize) {
+                return DownloadStatus.TOO_LARGE.make();
+            }
             InputStream in = urlConnection.getInputStream();
             byte[] buf = new byte[contentLength];
             int r = -1;
@@ -297,13 +301,15 @@ public final class PhotosPlugin extends JavaPlugin {
             if (image == null) return DownloadStatus.NOT_IMAGE.make();
             // Crop
             if (image.getWidth() > image.getHeight()) {
-                BufferedImage cropped = new BufferedImage(image.getHeight(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                BufferedImage cropped = new BufferedImage(image.getHeight(), image.getHeight(),
+                                                          BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gfx = cropped.createGraphics();
                 gfx.drawImage(image, (image.getWidth() - image.getHeight()) / -2, 0, null);
                 gfx.dispose();
                 image = cropped;
             } else if (image.getHeight() > image.getWidth()) {
-                BufferedImage cropped = new BufferedImage(image.getWidth(), image.getWidth(), BufferedImage.TYPE_INT_ARGB);
+                BufferedImage cropped = new BufferedImage(image.getWidth(), image.getWidth(),
+                                                          BufferedImage.TYPE_INT_ARGB);
                 Graphics2D gfx = cropped.createGraphics();
                 gfx.drawImage(image, 0, (image.getHeight() - image.getWidth()) / -2, null);
                 gfx.dispose();
@@ -319,7 +325,7 @@ public final class PhotosPlugin extends JavaPlugin {
     }
 
     private static BufferedImage toBufferedImage(Image image) {
-        if (image instanceof BufferedImage) return (BufferedImage)image;
+        if (image instanceof BufferedImage) return (BufferedImage) image;
         BufferedImage result = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
         Graphics2D gfx = result.createGraphics();
         gfx.drawImage(image, 0, 0, null);
@@ -352,7 +358,8 @@ public final class PhotosPlugin extends JavaPlugin {
             });
     }
 
-    void downloadPhotoAsync(final Photo photo, final URL url, final boolean adminOverride, final Consumer<DownloadResult> callback) {
+    void downloadPhotoAsync(final Photo photo, final URL url, final boolean adminOverride,
+                            final Consumer<DownloadResult> callback) {
         final File dir = new File(getDataFolder(), "photos");
         final File file = new File(dir, photo.filename());
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
@@ -369,7 +376,7 @@ public final class PhotosPlugin extends JavaPlugin {
                 final DownloadResult finalResult = result;
                 Bukkit.getScheduler().runTask(this, () -> {
                         if (finalResult.status == DownloadStatus.SUCCESS) {
-                            MapView view = getServer().getMap((short)photo.getId());
+                            MapView view = getServer().getMap((short) photo.getId());
                             if (view != null) initializeMapView(view, photo);
                             callback.accept(finalResult);
                         } else {

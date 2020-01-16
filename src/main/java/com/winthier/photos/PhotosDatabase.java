@@ -14,7 +14,7 @@ final class PhotosDatabase {
     private final PhotosPlugin plugin;
     private Connection cachedConnection = null;
 
-    PhotosDatabase(PhotosPlugin plugin) {
+    PhotosDatabase(final PhotosPlugin plugin) {
         this.plugin = plugin;
     }
 

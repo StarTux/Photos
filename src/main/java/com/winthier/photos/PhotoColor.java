@@ -24,7 +24,7 @@ enum PhotoColor {
 
     final Color color;
 
-    PhotoColor(Color color) {
+    PhotoColor(final Color color) {
         this.color = color;
     }
 
