@@ -44,10 +44,11 @@ final class PhotosMenu implements InventoryHolder {
     InventoryView open(Player player) {
         photos = plugin.findPhotos(player.getUniqueId());
         // Create the inventory
-        int photoRows = (photos.size() - 1) / 9 + 1;
+        int photoRows = Math.min(5, (photos.size() - 1) / 9 + 1);
         inventory = plugin.getServer().createInventory(this, photoRows * 9 + 9,
                                                        ChatColor.DARK_PURPLE + "Photos Menu");
         for (int i = 0; i < photos.size(); i += 1) {
+            if (i >= photoRows * 9) break;
             Photo photo = photos.get(i);
             ItemStack item = plugin.createPhotoItem(photo);
             ItemMeta meta = item.getItemMeta();
