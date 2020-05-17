@@ -202,7 +202,6 @@ public final class PhotosPlugin extends JavaPlugin {
         meta.setScaling(false);
         meta.setColor(Color.fromRGB(photo.getColor()));
         meta.setLocationName(photo.getName());
-        meta.setDisplayName(photo.getName());
         meta.setLocalizedName("Photo");
         item.setItemMeta(meta);
     }
