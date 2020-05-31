@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -35,20 +34,36 @@ final class PhotosMenu implements InventoryHolder {
     private final PhotosPlugin plugin;
     private Inventory inventory;
     private List<Photo> photos;
+    boolean paged = false;
+    int pageIndex = 0;
+    final int photoRows = 5;
+    final int pageSize = 5 * 9;
+    int pageCount = 1;
+    static final int PREV = 5 * 9;
+    static final int NEXT = 5 * 9 + 8;
 
     /**
      * Open the menu for a player.  This will create an inventory
      * fitting for the given player's Photo collection, and populate
      * it with clickable items.
      */
-    InventoryView open(Player player) {
+    InventoryView open(final Player player) {
+        String title = ChatColor.DARK_PURPLE + "Photos Menu";
+        inventory = plugin.getServer().createInventory(this, 6 * 9, title);
+        makeView(player);
+        return player.openInventory(inventory);
+    }
+
+    void makeView(Player player) {
         photos = plugin.findPhotos(player.getUniqueId());
-        // Create the inventory
-        int photoRows = Math.min(5, (photos.size() - 1) / 9 + 1);
-        inventory = plugin.getServer().createInventory(this, photoRows * 9 + 9,
-                                                       ChatColor.DARK_PURPLE + "Photos Menu");
-        for (int i = 0; i < photos.size(); i += 1) {
-            if (i >= photoRows * 9) break;
+        pageCount = (photos.size() - 1) / pageSize + 1;
+        paged = pageCount > 1;
+        inventory.clear();
+        int listOffset = pageSize * pageIndex;
+        for (int i = 0; i < pageSize; i += 1) {
+            final int invIndex = i;
+            final int listIndex = listOffset + i;
+            if (listIndex >= photos.size()) break;
             Photo photo = photos.get(i);
             ItemStack item = plugin.createPhotoItem(photo);
             ItemMeta meta = item.getItemMeta();
@@ -63,13 +78,18 @@ final class PhotosMenu implements InventoryHolder {
             };
             meta.setLore(Arrays.asList(lore));
             item.setItemMeta(meta);
-            inventory.addItem(item);
+            inventory.setItem(invIndex, item);
         }
+        // Buy new photo
         ItemStack item = new ItemStack(Material.MAP);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "New Photo for " + ChatColor.WHITE
-                            + GenericEvents.formatMoney(plugin.getPhotoPrice()));
+        meta.setDisplayName(ChatColor.GRAY + "Page "
+                            + ChatColor.WHITE + (pageIndex + 1)
+                            + ChatColor.GRAY + "/"
+                            + ChatColor.WHITE + pageCount);
         String[] lore = {
+            "" + ChatColor.LIGHT_PURPLE + "New Photo for " + ChatColor.WHITE
+            + GenericEvents.formatMoney(plugin.getPhotoPrice()),
             "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "CLICK "
             + ChatColor.WHITE + "information.",
             "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "SHIFT+CLICK "
@@ -78,7 +98,23 @@ final class PhotosMenu implements InventoryHolder {
         meta.setLore(Arrays.asList(lore));
         item.setItemMeta(meta);
         inventory.setItem(photoRows * 9 + 4, item);
-        return player.openInventory(inventory);
+        // Page controls
+        if (paged) {
+            if (pageIndex > 0) {
+                ItemStack prevItem = new ItemStack(Material.ARROW);
+                meta = item.getItemMeta();
+                meta.setDisplayName(ChatColor.GRAY + "Page " + pageIndex);
+                prevItem.setItemMeta(meta);
+                inventory.setItem(PREV, prevItem);
+            }
+            if (pageIndex < pageCount - 1) {
+                ItemStack nextItem = new ItemStack(Material.ARROW);
+                meta = item.getItemMeta();
+                meta.setDisplayName(ChatColor.GRAY + "Page " + (pageIndex + 2));
+                nextItem.setItemMeta(meta);
+                inventory.setItem(NEXT, nextItem);
+            }
+        }
     }
 
     void onInventoryOpen(InventoryOpenEvent event) {
@@ -123,6 +159,12 @@ final class PhotosMenu implements InventoryHolder {
                                    + " to buy a new Photo for " + ChatColor.LIGHT_PURPLE
                                    + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
             }
+        } else if (paged && event.getSlot() == PREV && pageIndex > 0) {
+            pageIndex -= 1;
+            makeView(player);
+        } else if (paged && event.getSlot() == NEXT && pageIndex < pageCount - 1) {
+            pageIndex += 1;
+            makeView(player);
         }
     }
 
@@ -179,7 +221,7 @@ final class PhotosMenu implements InventoryHolder {
                                + " Your inventory is full. The Photo was dropped.");
         }
         plugin.getPhotoCommand().suggestPhotoCommands(player, photo);
-        Bukkit.getScheduler().runTask(plugin, () -> new PhotosMenu(plugin).open(player));
+        makeView(player);
         player.playSound(player.getEyeLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER,
                          SoundCategory.MASTER, 0.5f, 0.75f);
     }
