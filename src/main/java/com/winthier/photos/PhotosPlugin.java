@@ -1,5 +1,6 @@
 package com.winthier.photos;
 
+import com.winthier.generic_events.GenericEvents;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -17,6 +18,7 @@ import javax.imageio.ImageIO;
 import lombok.Getter;
 import lombok.Value;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -203,6 +205,18 @@ public final class PhotosPlugin extends JavaPlugin {
         meta.setColor(Color.fromRGB(photo.getColor()));
         meta.setLocationName(photo.getName());
         meta.setLocalizedName("Photo");
+        List<String> lore = new ArrayList<>();
+        lore.add("" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "Photo");
+        if (photo.getName() != null) {
+            lore.add(ChatColor.GRAY + "Name " + ChatColor.RESET + photo.getName());
+        }
+        if (photo.getOwner() != null) {
+            String name = GenericEvents.cachedPlayerName(photo.getOwner());
+            if (name == null) name = "";
+            lore.add(ChatColor.GRAY + "Owner " + ChatColor.RESET + name);
+        }
+        lore.add(ChatColor.GRAY + "See " + ChatColor.RESET + "/photo");
+        meta.setLore(lore);
         item.setItemMeta(meta);
     }
 
