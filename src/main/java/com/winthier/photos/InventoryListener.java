@@ -3,6 +3,8 @@ package com.winthier.photos;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -11,7 +13,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType.SlotType;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -23,28 +28,28 @@ final class InventoryListener implements Listener {
     private final PhotosPlugin plugin;
 
     @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent event) {
+    public void onMenuOpen(InventoryOpenEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
             ((PhotosMenu) event.getInventory().getHolder()).onInventoryOpen(event);
         }
     }
 
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
+    public void onMenuClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
             ((PhotosMenu) event.getInventory().getHolder()).onInventoryClose(event);
         }
     }
 
     @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
+    public void onMenuClick(InventoryClickEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
             ((PhotosMenu) event.getInventory().getHolder()).onInventoryClick(event);
         }
     }
 
     @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
+    public void onMenuDrag(InventoryDragEvent event) {
         if (event.getInventory().getHolder() instanceof PhotosMenu) {
             ((PhotosMenu) event.getInventory().getHolder()).onInventoryDrag(event);
         }
@@ -85,6 +90,31 @@ final class InventoryListener implements Listener {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
-        player.sendMessage(ChatColor.RED + "You cannot duplicate Photos. Buy a copy instead.");
+        if (photo.getOwner().equals(player.getUniqueId())) {
+            player.sendMessage(ChatColor.RED + "You cannot duplicate Photos. Use /photo");
+        } else {
+            player.sendMessage(ChatColor.RED + "You cannot duplicate other people's Photos.");
+        }
+        player.playSound(player.getEyeLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.MASTER, 0.5f, 0.9f);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+        if (event.getSlotType() != SlotType.RESULT) return;
+        Inventory inventory = event.getClickedInventory();
+        if (inventory.getType() != InventoryType.CARTOGRAPHY) return;
+        ItemStack item = event.getCurrentItem();
+        if (item == null || item.getType() != Material.FILLED_MAP) return;
+        Photo photo = plugin.findPhoto(item);
+        if (photo == null) return;
+        event.setCancelled(true);
+        if (photo.getOwner().equals(player.getUniqueId())) {
+            player.sendMessage(ChatColor.RED + "You cannot duplicate Photos. Use /photo");
+        } else {
+            player.sendMessage(ChatColor.RED + "You cannot duplicate other people's Photos.");
+        }
+        player.playSound(player.getEyeLocation(), Sound.UI_BUTTON_CLICK, SoundCategory.MASTER, 0.5f, 0.9f);
     }
 }
