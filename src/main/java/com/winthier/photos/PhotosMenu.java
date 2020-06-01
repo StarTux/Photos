@@ -64,7 +64,7 @@ final class PhotosMenu implements InventoryHolder {
             final int invIndex = i;
             final int listIndex = listOffset + i;
             if (listIndex >= photos.size()) break;
-            Photo photo = photos.get(i);
+            Photo photo = photos.get(listIndex);
             ItemStack item = plugin.createPhotoItem(photo);
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(ChatColor.LIGHT_PURPLE + photo.getName());
