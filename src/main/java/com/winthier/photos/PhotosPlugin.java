@@ -67,6 +67,7 @@ public final class PhotosPlugin extends JavaPlugin {
         getCommand("photo").setExecutor(photoCommand);
         getCommand("photoadmin").setExecutor(adminCommand);
         getServer().getPluginManager().registerEvents(new InventoryListener(this), this);
+        getServer().getScheduler().runTaskTimer(this, PhotoRenderer::onTick, 1L, 1L);
     }
 
     @Override

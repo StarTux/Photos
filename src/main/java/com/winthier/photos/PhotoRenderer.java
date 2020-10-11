@@ -16,6 +16,8 @@ final class PhotoRenderer extends MapRenderer {
     private boolean paused = false;
     private boolean drawn = false;
     private BufferedImage image = null;
+    private static boolean asyncLoading = false;
+    private static boolean drawImageThisTick = false;
 
     PhotoRenderer(final PhotosPlugin plugin, final Photo photo) {
         super(false);
@@ -26,19 +28,25 @@ final class PhotoRenderer extends MapRenderer {
     @Override
     public void initialize(MapView map) { }
 
+    /**
+     * This method gets spammed a lot.
+     */
     @Override
     public void render(MapView view, MapCanvas canvas, Player player) {
-        if (paused || drawn) return;
+        if (paused || drawn || asyncLoading || drawImageThisTick) return;
         if (image == null) {
             paused = true;
             plugin.loadImageAsync(photo.filename(), this::accept);
+            asyncLoading = true;
             return;
         }
         canvas.drawImage(0, 0, image);
+        drawImageThisTick = true;
         drawn = true;
     }
 
     void accept(BufferedImage newImage) {
+        asyncLoading = false;
         if (newImage == null) {
             image = plugin.getDefaultImage();
         } else {
@@ -47,5 +55,9 @@ final class PhotoRenderer extends MapRenderer {
         if (image == null) return;
         paused = false;
         drawn = false;
+    }
+
+    public static void onTick() {
+        drawImageThisTick = false;
     }
 }
