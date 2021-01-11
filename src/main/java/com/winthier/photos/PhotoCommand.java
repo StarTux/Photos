@@ -68,9 +68,18 @@ final class PhotoCommand implements TabExecutor {
         }
         Player player = (Player) sender;
         if (args.length == 0) {
+            if (!plugin.getDatabase().didConsent(player.getUniqueId())) {
+                player.sendMessage(plugin.getRules());
+                ComponentBuilder cb = new ComponentBuilder("  ");
+                BaseComponent[] tooltip = TextComponent.fromLegacyText(ChatColor.GREEN + "Accept the rules to proceed");
+                cb.append("[Accept]").color(ChatColor.GREEN)
+                    .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip))
+                    .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/photos:photo accept"));
+                player.sendMessage(cb.create());
+                return true;
+            }
             new PhotosMenu(plugin).open(player);
-            player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER,
-                             0.25f, 2.0f);
+            player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.25f, 2.0f);
             return true;
         } else {
             try {
@@ -206,6 +215,14 @@ final class PhotoCommand implements TabExecutor {
             plugin.getDatabase().updatePhoto(photo);
             plugin.updatePhotoItem(item, photo);
             player.sendMessage(ChatColor.LIGHT_PURPLE + "Photo color updated.");
+            break;
+        }
+        case "accept": {
+            if (args.length != 0) return;
+            player.sendMessage(ChatColor.GOLD + "Thank you for accepting the rules!");
+            plugin.getDatabase().consent(player.getUniqueId());
+            new PhotosMenu(plugin).open(player);
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.25f, 2.0f);
             break;
         }
         default: throw new UsageError();

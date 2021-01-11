@@ -47,6 +47,7 @@ public final class PhotosPlugin extends JavaPlugin {
     private AdminCommand adminCommand;
     private String defaultDownloadURL;
     private BufferedImage defaultImage;
+    private String rules;
 
     // --- JavaPlugin
 
@@ -97,6 +98,10 @@ public final class PhotosPlugin extends JavaPlugin {
         loadCooldown = getConfig().getLong("LoadCooldown");
         maxFileSize = getConfig().getInt("MaxFileSize") * 1024;
         defaultDownloadURL = getConfig().getString("DefaultDownloadURL");
+        String text = getConfig().getString("Rules");
+        rules = text != null
+            ? ChatColor.translateAlternateColorCodes('&', text)
+            : "No rules specified";
         // load default.png
         try {
             defaultImage = ImageIO.read(new File(getDataFolder(), "default.png"));

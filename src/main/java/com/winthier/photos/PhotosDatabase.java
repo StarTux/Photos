@@ -35,7 +35,8 @@ final class PhotosDatabase {
     }
 
     boolean createTables() {
-        String sql =
+        String sql;
+        sql =
             "CREATE TABLE IF NOT EXISTS `photos` ("
             + " `id` INTEGER PRIMARY KEY,"
             + " `owner` VARCHAR(40) DEFAULT NULL,"
@@ -45,11 +46,22 @@ final class PhotosDatabase {
             + ")";
         try {
             getConnection().createStatement().execute(sql);
-            return true;
         } catch (SQLException sqle) {
             sqle.printStackTrace();
             return false;
         }
+        sql =
+            "CREATE TABLE IF NOT EXISTS `consent` ("
+            //+ " `id` INTEGER PRIMARY KEY,"
+            + " `uuid` VARCHAR(40) NOT NULL PRIMARY KEY"
+            + ")";
+        try {
+            getConnection().createStatement().execute(sql);
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     List<Photo> loadPhotos() {
@@ -120,6 +132,41 @@ final class PhotosDatabase {
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, id);
             return 1 == statement.executeUpdate();
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            return false;
+        }
+    }
+
+    boolean didConsent(UUID uuid) {
+        String sql = "SELECT * FROM `consent` WHERE `uuid` = ?";
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            return false;
+        }
+    }
+
+    boolean consent(UUID uuid) {
+        String sql = "INSERT OR IGNORE INTO `consent` (`uuid`) VALUES (?)";
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            return 1 == statement.executeUpdate();
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            return false;
+        }
+    }
+
+    boolean resetConsent() {
+        String sql = "DELETE FROM `consent`";
+        try {
+            getConnection().createStatement().execute(sql);
+            return true;
         } catch (SQLException sqle) {
             sqle.printStackTrace();
             return false;

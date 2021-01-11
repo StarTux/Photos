@@ -32,6 +32,7 @@ commands:
       /photoadmin spawn <player> <id> - Give copy of Photo
       /photoadmin delete <id> - Delete Photo
       /photoadmin reload - Reload config and photos
+      /photoadmin resetrules - Force players to accept rules again
 permissions:
   photos.photo:
     description: Use the /photo command

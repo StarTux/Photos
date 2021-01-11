@@ -161,6 +161,15 @@ final class AdminCommand implements CommandExecutor {
             sender.sendMessage("Config and Photos reloaded.");
             return true;
         }
+        case "resetrules": {
+            if (args.length != 0) return false;
+            if (plugin.getDatabase().resetConsent()) {
+                sender.sendMessage("Rules reset. All players will have to accept them again.");
+            } else {
+                sender.sendMessage("Something went wrong. See console.");
+            }
+            return true;
+        }
         default: return false;
         }
     }
