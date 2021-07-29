@@ -1,6 +1,6 @@
 package com.winthier.photos;
 
-import com.winthier.generic_events.GenericEvents;
+import com.cavetale.money.Money;
 import java.util.Arrays;
 import java.util.List;
 import lombok.Getter;
@@ -70,7 +70,7 @@ final class PhotosMenu implements InventoryHolder {
             meta.setDisplayName(ChatColor.LIGHT_PURPLE + photo.getName());
             String[] lore = {
                 "" + ChatColor.LIGHT_PURPLE + "Copy for "
-                + ChatColor.WHITE + GenericEvents.formatMoney(plugin.getCopyPrice()),
+                + ChatColor.WHITE + Money.format(plugin.getCopyPrice()),
                 "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "CLICK "
                 + ChatColor.WHITE + "information",
                 "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "SHIFT+CLICK "
@@ -89,7 +89,7 @@ final class PhotosMenu implements InventoryHolder {
                             + ChatColor.WHITE + pageCount);
         String[] lore = {
             "" + ChatColor.LIGHT_PURPLE + "New Photo for " + ChatColor.WHITE
-            + GenericEvents.formatMoney(plugin.getPhotoPrice()),
+            + Money.format(plugin.getPhotoPrice()),
             "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "CLICK "
             + ChatColor.WHITE + "information.",
             "" + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + "SHIFT+CLICK "
@@ -157,7 +157,7 @@ final class PhotosMenu implements InventoryHolder {
             } else if (event.isLeftClick()) {
                 player.sendMessage(ChatColor.LIGHT_PURPLE + "SHIFT+CLICK" + ChatColor.WHITE
                                    + " to buy a new Photo for " + ChatColor.LIGHT_PURPLE
-                                   + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+                                   + Money.format(price) + ChatColor.WHITE + ".");
             }
         } else if (paged && event.getSlot() == PREV && pageIndex > 0) {
             pageIndex -= 1;
@@ -170,15 +170,15 @@ final class PhotosMenu implements InventoryHolder {
 
     void buyCopy(Player player, Photo photo, double price) {
         // Purchase
-        if (!GenericEvents.takePlayerMoney(player.getUniqueId(), price, plugin, "Copy Photo")) {
+        if (!Money.take(player.getUniqueId(), price, plugin, "Copy Photo")) {
             player.sendMessage(ChatColor.RED + "You can't pay "
-                               + GenericEvents.formatMoney(price) + "!");
+                               + Money.format(price) + "!");
             return;
         }
         player.sendMessage(ChatColor.LIGHT_PURPLE + "Made one copy of "
                            + ChatColor.LIGHT_PURPLE + ChatColor.ITALIC + photo.getName()
                            + ChatColor.WHITE + " for " + ChatColor.LIGHT_PURPLE
-                           + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+                           + Money.format(price) + ChatColor.WHITE + ".");
         ItemStack item = plugin.createPhotoItem(photo);
         for (ItemStack drop: player.getInventory().addItem(item).values()) {
             player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
@@ -193,17 +193,17 @@ final class PhotosMenu implements InventoryHolder {
         player.sendMessage(ChatColor.LIGHT_PURPLE + "SHIFT+CLICK" + ChatColor.WHITE
                            + " to make a copy of " + ChatColor.GRAY + ChatColor.ITALIC
                            + photo.getName() + ChatColor.WHITE + " for " + ChatColor.LIGHT_PURPLE
-                           + GenericEvents.formatMoney(price) + ChatColor.WHITE + ".");
+                           + Money.format(price) + ChatColor.WHITE + ".");
     }
 
     void buyPhoto(Player player, double price) {
-        if (!GenericEvents.takePlayerMoney(player.getUniqueId(), price, plugin, "Buy New Photo")) {
+        if (!Money.take(player.getUniqueId(), price, plugin, "Buy New Photo")) {
             player.sendMessage(ChatColor.RED + "You can't have "
-                               + GenericEvents.formatMoney(price) + "!");
+                               + Money.format(price) + "!");
             return;
         }
         player.sendMessage(ChatColor.LIGHT_PURPLE + "Purchased a new Photo for "
-                           + ChatColor.LIGHT_PURPLE + GenericEvents.formatMoney(price)
+                           + ChatColor.LIGHT_PURPLE + Money.format(price)
                            + ChatColor.WHITE + ".");
         Photo photo = plugin.createPhoto(player.getUniqueId(), "Photo " + (photos.size() + 1),
                                          PhotoColor.random().color.asRGB());
@@ -211,7 +211,7 @@ final class PhotosMenu implements InventoryHolder {
             plugin.getLogger().warning("Could not create Photo for " + player.getName() + "!");
             player.sendMessage(ChatColor.DARK_RED + "Something went wrong during Photo creation."
                                + " Please contact an administrator.");
-            GenericEvents.givePlayerMoney(player.getUniqueId(), price, plugin, "Photo Refund");
+            Money.give(player.getUniqueId(), price, plugin, "Photo Refund");
             return;
         }
         ItemStack item = plugin.createPhotoItem(photo);

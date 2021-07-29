@@ -1,6 +1,6 @@
 package com.winthier.photos;
 
-import com.winthier.generic_events.GenericEvents;
+import com.winthier.playercache.PlayerCache;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -217,7 +217,7 @@ public final class PhotosPlugin extends JavaPlugin {
             lore.add(ChatColor.GRAY + "Name " + ChatColor.RESET + photo.getName());
         }
         if (photo.getOwner() != null) {
-            String name = GenericEvents.cachedPlayerName(photo.getOwner());
+            String name = PlayerCache.nameForUuid(photo.getOwner());
             if (name == null) name = "";
             lore.add(ChatColor.GRAY + "Owner " + ChatColor.RESET + name);
         }

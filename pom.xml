@@ -21,9 +21,9 @@
 
     <!-- Paper API -->
     <dependency>
-      <groupId>com.destroystokyo.paper</groupId>
+      <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
-      <version>1.16.4-R0.1-SNAPSHOT</version>
+      <version>1.17.1-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -36,10 +36,18 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- GenericEvents -->
+    <!-- PlayerCache -->
     <dependency>
-      <groupId>com.winthier.generic_events</groupId>
-      <artifactId>generic_events</artifactId>
+      <groupId>com.winthier.playercache</groupId>
+      <artifactId>playercache</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Money -->
+    <dependency>
+      <groupId>com.cavetale.money</groupId>
+      <artifactId>money</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
@@ -55,8 +63,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.2</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>16</source>
+          <target>16</target>
           <showDeprecation>true</showDeprecation>
           <showWarnings>true</showWarnings>
           <compilerArgs>

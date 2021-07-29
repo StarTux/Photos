@@ -1,6 +1,6 @@
 package com.winthier.photos;
 
-import com.winthier.generic_events.GenericEvents;
+import com.winthier.playercache.PlayerCache;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
@@ -73,7 +73,7 @@ final class AdminCommand implements CommandExecutor {
             sender.sendMessage("Photo ID: " + photo.getId());
             sender.sendMessage("Owner: " + photo.getOwner());
             if (photo.getOwner() != null) {
-                sender.sendMessage("Player: " + GenericEvents.cachedPlayerName(photo.getOwner()));
+                sender.sendMessage("Player: " + PlayerCache.nameForUuid(photo.getOwner()));
             }
             sender.sendMessage("Name: " + photo.getName());
             sender.sendMessage("Color: " + photo.getColor());
@@ -175,7 +175,7 @@ final class AdminCommand implements CommandExecutor {
     }
 
     UUID parsePlayer(String arg) throws AdminException {
-        UUID result = GenericEvents.cachedPlayerUuid(arg);
+        UUID result = PlayerCache.uuidForName(arg);
         if (result == null) throw new AdminException("Player not found: " + arg);
         return result;
     }
