@@ -60,7 +60,9 @@ public final class PhotosPlugin extends JavaPlugin {
             return;
         }
         saveDefaultConfig();
-        saveResource("default.png", false);
+        if (!new File(getDataFolder(), "default.png").exists()) {
+            saveResource("default.png", false);
+        }
         importConfig();
         loadPhotos();
         photoCommand = new PhotoCommand(this);
