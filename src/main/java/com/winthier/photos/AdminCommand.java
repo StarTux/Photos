@@ -13,6 +13,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 final class AdminCommand implements CommandExecutor {
@@ -170,6 +172,7 @@ final class AdminCommand implements CommandExecutor {
             }
             return true;
         }
+        case "transferall": return transferAll(sender, args);
         default: return false;
         }
     }
@@ -198,5 +201,33 @@ final class AdminCommand implements CommandExecutor {
         } catch (NumberFormatException nfe) {
             throw new AdminException("Invalid number: " + arg);
         }
+    }
+
+    private boolean transferAll(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        PlayerCache from = PlayerCache.forArg(args[0]);
+        if (from == null) {
+            sender.sendMessage(text("Player not found: " + args[0], RED));
+            return true;
+        }
+        PlayerCache to = PlayerCache.forArg(args[1]);
+        if (to == null) {
+            sender.sendMessage(text("Player not found: " + args[1], RED));
+            return true;
+        }
+        if (from.equals(to)) {
+            sender.sendMessage(text("Players are identical: " + from.getName(), RED));
+            return true;
+        }
+        int count = plugin.getDatabase().transfer(from.uuid, to.uuid);
+        if (count == 0) {
+            sender.sendMessage(text(from.name + " does not have any photos", RED));
+            return true;
+        }
+        plugin.loadPhotos();
+        sender.sendMessage(text("Transferred photos from " + from.name + " to " + to.name + ":"
+                                + " count=" + count,
+                                YELLOW));
+        return true;
     }
 }

@@ -172,4 +172,16 @@ final class PhotosDatabase {
             return false;
         }
     }
+
+    protected int transfer(UUID from, UUID to) {
+        String sql = "UPDATE `photos` SET `owner`=? WHERE `owner`=?";
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, to.toString());
+            statement.setString(2, from.toString());
+            return statement.executeUpdate();
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            return 0;
+        }
+    }
 }

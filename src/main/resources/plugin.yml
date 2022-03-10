@@ -3,7 +3,7 @@ name: Photos
 description: Load images onto maps
 author: StarTux
 version: 0.1
-api-version: 1.13
+api-version: 1.18
 website: https://github.com/StarTux/Photos
 depend: [PlayerCache, Money]
 commands:
@@ -33,6 +33,7 @@ commands:
       /photoadmin delete <id> - Delete Photo
       /photoadmin reload - Reload config and photos
       /photoadmin resetrules - Force players to accept rules again
+      /photoadmin transferall <from> <to> - Transfer all photos
 permissions:
   photos.photo:
     description: Use the /photo command
