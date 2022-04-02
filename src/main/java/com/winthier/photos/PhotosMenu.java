@@ -171,7 +171,7 @@ final class PhotosMenu implements InventoryHolder {
     void buyCopy(Player player, Photo photo, double price) {
         // Purchase
         if (!Money.take(player.getUniqueId(), price, plugin, "Copy Photo")) {
-            player.sendMessage(ChatColor.RED + "You can't pay "
+            player.sendMessage(ChatColor.RED + "You don't have "
                                + Money.format(price) + "!");
             return;
         }
@@ -198,7 +198,7 @@ final class PhotosMenu implements InventoryHolder {
 
     void buyPhoto(Player player, double price) {
         if (!Money.take(player.getUniqueId(), price, plugin, "Buy New Photo")) {
-            player.sendMessage(ChatColor.RED + "You can't have "
+            player.sendMessage(ChatColor.RED + "You don't have "
                                + Money.format(price) + "!");
             return;
         }
