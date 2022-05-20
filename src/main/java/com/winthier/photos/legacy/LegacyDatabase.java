@@ -1,5 +1,6 @@
-package com.winthier.photos;
+package com.winthier.photos.legacy;
 
+import com.winthier.photos.PhotosPlugin;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,15 +11,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-final class PhotosDatabase {
+public final class LegacyDatabase {
     private final PhotosPlugin plugin;
     private Connection cachedConnection = null;
+    private File databaseFile;
 
-    PhotosDatabase(final PhotosPlugin plugin) {
+    public LegacyDatabase(final PhotosPlugin plugin) {
         this.plugin = plugin;
+        this.databaseFile = new File(plugin.getDataFolder(), "photos.db");
     }
 
-    Connection getConnection() throws SQLException {
+    public boolean isValid() {
+        return databaseFile.isFile();
+    }
+
+    public void invalidate() {
+        databaseFile.renameTo(new File(plugin.getDataFolder(), "photos.db.invalid"));
+    }
+
+    private Connection getConnection() throws SQLException {
         if (cachedConnection == null || !cachedConnection.isValid(1)) {
             try {
                 Class.forName("org.sqlite.JDBC");
@@ -26,15 +37,12 @@ final class PhotosDatabase {
                 cnfe.printStackTrace();
                 return null;
             }
-            File dbfolder = plugin.getDataFolder();
-            dbfolder.mkdirs();
-            File dbfile = new File(dbfolder, "photos.db");
-            cachedConnection = DriverManager.getConnection("jdbc:sqlite:" + dbfile);
+            cachedConnection = DriverManager.getConnection("jdbc:sqlite:" + databaseFile);
         }
         return cachedConnection;
     }
 
-    boolean createTables() {
+    private boolean createTables() {
         String sql;
         sql =
             "CREATE TABLE IF NOT EXISTS `photos` ("
@@ -64,12 +72,12 @@ final class PhotosDatabase {
         return true;
     }
 
-    List<Photo> loadPhotos() {
-        List<Photo> result = new ArrayList<>();
+    public List<LegacyPhoto> loadPhotos() {
+        List<LegacyPhoto> result = new ArrayList<>();
         String sql = "SELECT `id`, `owner`, `name`, `color`, `extra` FROM `photos`";
         try (ResultSet row = getConnection().createStatement().executeQuery(sql)) {
             while (row.next()) {
-                Photo photo = new Photo();
+                LegacyPhoto photo = new LegacyPhoto();
                 photo.setId(row.getInt("id"));
                 String val = row.getString("owner");
                 if (val != null) {
@@ -91,7 +99,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean savePhoto(Photo photo) {
+    private boolean savePhoto(LegacyPhoto photo) {
         String sql = "INSERT INTO `photos` (`id`, `owner`, `name`, `color`) VALUES (?, ?, ?, ?)";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, photo.getId());
@@ -109,7 +117,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean updatePhoto(Photo photo) {
+    private boolean updatePhoto(LegacyPhoto photo) {
         String sql = "UPDATE `photos` SET `owner`=?, `name`=?, `color`=? WHERE `id`=?";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             if (photo.getOwner() == null) {
@@ -127,7 +135,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean deletePhoto(int id) {
+    private boolean deletePhoto(int id) {
         String sql = "DELETE FROM `photos` WHERE `id`=?";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setInt(1, id);
@@ -138,7 +146,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean didConsent(UUID uuid) {
+    private boolean didConsent(UUID uuid) {
         String sql = "SELECT * FROM `consent` WHERE `uuid` = ?";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, uuid.toString());
@@ -151,7 +159,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean consent(UUID uuid) {
+    private boolean consent(UUID uuid) {
         String sql = "INSERT OR IGNORE INTO `consent` (`uuid`) VALUES (?)";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, uuid.toString());
@@ -162,7 +170,7 @@ final class PhotosDatabase {
         }
     }
 
-    boolean resetConsent() {
+    private boolean resetConsent() {
         String sql = "DELETE FROM `consent`";
         try {
             getConnection().createStatement().execute(sql);
@@ -173,7 +181,7 @@ final class PhotosDatabase {
         }
     }
 
-    protected int transfer(UUID from, UUID to) {
+    private int transfer(UUID from, UUID to) {
         String sql = "UPDATE `photos` SET `owner`=? WHERE `owner`=?";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, to.toString());

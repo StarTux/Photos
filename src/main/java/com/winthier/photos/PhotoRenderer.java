@@ -12,14 +12,14 @@ import org.bukkit.map.MapView;
  */
 final class PhotoRenderer extends MapRenderer {
     private final PhotosPlugin plugin;
-    private final Photo photo;
+    private final PhotoRuntime photo;
     private boolean paused = false;
     private boolean drawn = false;
-    private BufferedImage image = null;
+    private BufferedImage image;
     private static boolean asyncLoading = false;
     private static boolean drawImageThisTick = false;
 
-    PhotoRenderer(final PhotosPlugin plugin, final Photo photo) {
+    protected PhotoRenderer(final PhotosPlugin plugin, final PhotoRuntime photo) {
         super(false);
         this.plugin = plugin;
         this.photo = photo;
@@ -36,7 +36,7 @@ final class PhotoRenderer extends MapRenderer {
         if (paused || drawn || asyncLoading || drawImageThisTick) return;
         if (image == null) {
             paused = true;
-            plugin.loadImageAsync(photo.filename(), this::accept);
+            plugin.loadImageAsync(photo, this::accept);
             asyncLoading = true;
             return;
         }
@@ -45,7 +45,14 @@ final class PhotoRenderer extends MapRenderer {
         drawn = true;
     }
 
-    void accept(BufferedImage newImage) {
+    protected void refresh() {
+        paused = false;
+        drawn = false;
+        asyncLoading = false;
+        image = null;
+    }
+
+    protected void accept(BufferedImage newImage) {
         asyncLoading = false;
         if (newImage == null) {
             image = plugin.getDefaultImage();
@@ -57,7 +64,7 @@ final class PhotoRenderer extends MapRenderer {
         drawn = false;
     }
 
-    public static void onTick() {
+    protected static void onTick() {
         drawImageThisTick = false;
     }
 }

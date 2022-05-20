@@ -1,43 +1,33 @@
 main: com.winthier.photos.PhotosPlugin
 name: Photos
-description: Load images onto maps
-author: StarTux
+
 version: 0.1
 api-version: 1.18
+
+description: Load images onto maps
+author: StarTux
 website: https://github.com/StarTux/Photos
-depend: [PlayerCache, Money]
+
+depend: [Core, SQL, PlayerCache, Money, Mytems]
+
 commands:
   photo:
-    aliases: [ photos ]
+    aliases: [photos]
     description: Photos user interface
-    usage: |-
-      /photo load <URL>
-      /photo name <NAME>
-      /photo color <R> <G> <B>
-      /photo color <COLOR>
+    usage: /photo
     permission: photos.photo
   photoadmin:
     aliases: [ photosadmin ]
     description: Admin interface
     permission: photos.admin
-    usage: |-
-      /photoadmin list <player>
-      /photoadmin create [id] - Create new Photo
-      /photoadmin info <id> - Photo info
-      /photoadmin transfer <id> [player] - Transfer ownership
-      /photoadmin name <id> <name> - Change name
-      /photoadmin load <id> <url> - Load URL
-      /photoadmin color <id> <color> - Change color
-      /photoadmin grant <player> - Give new Photo
-      /photoadmin spawn <player> <id> - Give copy of Photo
-      /photoadmin delete <id> - Delete Photo
-      /photoadmin reload - Reload config and photos
-      /photoadmin resetrules - Force players to accept rules again
-      /photoadmin transferall <from> <to> - Transfer all photos
+    usage: /photoadmin
+
 permissions:
+
   photos.photo:
     description: Use the /photo command
     default: op
+
   photos.admin:
     description: Use /photoadmin
     default: op
