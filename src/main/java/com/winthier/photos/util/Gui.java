@@ -18,6 +18,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -35,7 +36,8 @@ public final class Gui implements InventoryHolder {
     @Getter @Setter private boolean editable = false;
     @Getter private int size = 3 * 9;
     @Getter private Component title = Component.empty();
-    boolean locked = false;
+    @Getter private InventoryType type = null;
+    private boolean locked = false;
 
     @RequiredArgsConstructor @AllArgsConstructor
     private static final class Slot {
@@ -67,9 +69,21 @@ public final class Gui implements InventoryHolder {
         return this;
     }
 
+    public Gui type(InventoryType newType) {
+        this.type = newType;
+        this.size = newType.getDefaultSize();
+        return this;
+    }
+
+    public Gui cartography() {
+        return type(InventoryType.CARTOGRAPHY);
+    }
+
     public Inventory getInventory() {
         if (inventory == null) {
-            inventory = Bukkit.getServer().createInventory(this, size, title);
+            inventory = type != null
+                ? Bukkit.getServer().createInventory(this, type, title)
+                : Bukkit.getServer().createInventory(this, size, title);
             for (int i = 0; i < size; i += 1) {
                 Slot slot = slots.get(i);
                 if (slot != null) {

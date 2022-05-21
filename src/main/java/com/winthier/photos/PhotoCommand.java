@@ -52,6 +52,9 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
         rootNode.addChild("accept").denyTabCompletion()
             .hidden(true)
             .playerCaller(this::accept);
+        rootNode.addChild("help").denyTabCompletion()
+            .description("Print help")
+            .senderCaller((s, a) -> false);
     }
 
     private void photos(Player player) {
@@ -128,7 +131,7 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
     private void acceptDownload(Player player, PhotoRuntime photo, URL url, DownloadResult result) {
         switch (result.status()) {
         case SUCCESS: {
-            player.sendMessage(text("Photo downloaded from " + url, color(SEPIA)));
+            player.sendMessage(text("Image successfully downloaded. Please wait a minute for the photo to update.", GREEN));
             break;
         }
         case NOT_FOUND: {

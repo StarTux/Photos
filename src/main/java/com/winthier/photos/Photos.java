@@ -94,7 +94,7 @@ public final class Photos {
         }
     }
 
-    private void update() {
+    public void update() {
         Date date = lastUpdate;
         lastUpdate = new Date();
         plugin.getDatabase().find(SQLPhoto.class)
@@ -103,12 +103,18 @@ public final class Photos {
                     for (SQLPhoto row : list) {
                         PhotoRuntime photo = photoIdMap.get(row.getId());
                         if (photo == null) {
-                            put(row);
-                            continue;
-                        }
-                        photo.setRow(row);
-                        if (photo.getRenderer() != null) {
-                            photo.getRenderer().refresh();
+                            photo = put(row);
+                            plugin.getLogger().info("[Update] New photo:"
+                                                    + " photoId=" + photo.getPhotoId()
+                                                    + " mapId=" + photo.getMapId());
+                        } else {
+                            photo.setRow(row);
+                            if (photo.getRenderer() != null) {
+                                photo.getRenderer().refresh();
+                            }
+                            plugin.getLogger().info("[Update] Photo changed:"
+                                                    + " photoId=" + photo.getPhotoId()
+                                                    + " mapId=" + photo.getMapId());
                         }
                     }
                 });
@@ -181,6 +187,7 @@ public final class Photos {
         mapView.addRenderer(renderer);
         photo.setRenderer(renderer);
         photo.setMapView(mapView);
+        photo.setMapId(mapView.getId());
     }
 
     public PhotoRuntime create(UUID owner, String name, int color) {

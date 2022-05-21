@@ -3,6 +3,7 @@ package com.winthier.photos;
 import com.cavetale.core.font.GuiOverlay;
 import com.cavetale.money.Money;
 import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.item.coin.Coin;
 import com.cavetale.mytems.item.photo.Photo;
 import com.winthier.photos.util.Gui;
 import java.util.List;
@@ -52,7 +53,7 @@ public final class PhotosMenu {
                          : empty()),
                         text("Photos Menu", color(SEPIA))));
         for (int i = 0; i < pageSize; i += 1) {
-            final int invIndex = 9;
+            final int invIndex = 9 + i;
             final int listIndex = pageIndex * pageSize + i;
             if (listIndex >= photos.size()) break;
             PhotoRuntime photo = photos.get(listIndex);
@@ -61,10 +62,12 @@ public final class PhotosMenu {
                     text(meta, List.of(text(photo.getRow().getName(), color(photo.getRow().getColor())),
                                        join(noSeparators(),
                                             text(tiny("shift-click "), GREEN),
-                                            text("Buy a copy", GRAY)),
+                                            text("to buy", GRAY)),
+                                       text("an item copy", GRAY),
+                                       empty(),
                                        join(noSeparators(),
                                             text(tiny("price "), GRAY),
-                                            text(Money.format(plugin.getCopyPrice()), GOLD))));
+                                            Coin.format(plugin.getCopyPrice()))));
                 });
             gui.setItem(invIndex, icon, click -> {
                     if (click.isShiftClick()) {
@@ -84,12 +87,14 @@ public final class PhotosMenu {
             .createIcon(List.of(text("New Photo", color(SEPIA)),
                                 join(noSeparators(),
                                      text(tiny("shift-click "), GREEN),
-                                     text("Buy a new blank photo", GRAY)),
+                                     text("to buy", GRAY)),
+                                text("a new blank photo", GRAY),
+                                empty(),
                                 join(noSeparators(),
                                      text(tiny("price "), GRAY),
-                                     text(Money.format(plugin.getPhotoPrice()), GOLD))));
+                                     Coin.format(plugin.getPhotoPrice()))));
         gui.setItem(4, blankIcon, click -> {
-                if (click.isLeftClick()) {
+                if (click.isShiftClick()) {
                     if (buyPhoto(player)) {
                         purchase(player);
                         player.closeInventory();
@@ -126,21 +131,21 @@ public final class PhotosMenu {
         double price = plugin.getCopyPrice();
         // Purchase
         if (!Money.take(player.getUniqueId(), price, plugin, "Make photo copy")) {
-            player.sendMessage(text("You don't have " + Money.format(price) + "!", RED));
+            player.sendMessage(join(noSeparators(), text("You don't have ", RED), Coin.format(price), text("!", RED)));
             return false;
         }
         player.sendMessage(join(noSeparators(),
                                 text("Made one copy of "),
                                 text(photo.getRow().getName(), null, BOLD),
                                 text(" for "),
-                                text(Money.format(price), GOLD))
+                                Coin.format(price))
                            .color(color(SEPIA)));
         ItemStack item = Photo.createItemStack(photo.getRow().getId());
-        for (ItemStack drop: player.getInventory().addItem(item).values()) {
+        for (ItemStack drop : player.getInventory().addItem(item).values()) {
             player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
             player.sendMessage(text("Careful! Your inventory is full. The copy was dropped.", RED));
         }
-        return false;
+        return true;
     }
 
     private void buyCopyInfo(Player player, PhotoRuntime photo) {
@@ -150,23 +155,22 @@ public final class PhotosMenu {
                                 text(" to make a copy of "),
                                 text(photo.getRow().getName(), color(photo.getRow().getColor())),
                                 text(" for "),
-                                text(Money.format(price), GOLD))
+                                Coin.format(price))
                            .color(color(SEPIA)));
     }
 
     private boolean buyPhoto(Player player) {
         double price = plugin.getPhotoPrice();
-        if (!Money.take(player.getUniqueId(), price, plugin, "Buy new photo")) {
-            player.sendMessage(text("You don't have " + Money.format(price) + "!", RED));
+        if (!Money.take(player.getUniqueId(), price, plugin, "Buy blank photo")) {
+            player.sendMessage(join(noSeparators(), text("You don't have ", RED), Coin.format(price), text("!", RED)));
             return false;
         }
         player.sendMessage(join(noSeparators(),
                                 text("Purchased a new Photo for "),
-                                text(Money.format(price), GOLD),
+                                Coin.format(price),
                                 text("."))
                            .color(color(SEPIA)));
-        PhotoRuntime photo = plugin.getPhotos().create(player.getUniqueId(), "Photo " + (photos.size() + 1),
-                                                       PhotoColor.random().color.asRGB());
+        PhotoRuntime photo = plugin.getPhotos().create(player.getUniqueId(), "Blank Photo", PhotoColor.totallyRandom());
         if (photo == null) {
             plugin.getLogger().warning("Could not create Photo for " + player.getName() + "!");
             player.sendMessage(text("Something went wrong during Photo creation."

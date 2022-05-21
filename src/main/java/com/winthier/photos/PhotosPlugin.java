@@ -19,6 +19,7 @@ import javax.imageio.ImageIO;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import static java.awt.Color.HSBtoRGB;
 import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
 
 /**
@@ -32,7 +33,7 @@ public final class PhotosPlugin extends JavaPlugin {
     private final double photoPrice = 1000.0;
     private final double copyPrice = 100.0;
     private final long loadCooldown = 10L;
-    private final int maxFileSize = 3072_000;
+    private final int maxFileSize = 1024 * 32;
     private final BufferedImage defaultImage = new BufferedImage(128, 128, TYPE_INT_ARGB);
     private final String defaultDownloadURL = "https://i.imgur.com/NNvWR6B.png";
     private PhotoCommand photoCommand = new PhotoCommand(this);
@@ -58,6 +59,12 @@ public final class PhotosPlugin extends JavaPlugin {
         getServer().getScheduler().runTaskTimer(this, PhotoRenderer::onTick, 1L, 1L);
         Photo.setPhotoDataGetter(this::getMytemsPhotoData);
         Photo.setPhotoIdGetter(this::mapIdToPhotoId);
+        for (int y = 0; y < 128; y += 1) {
+            for (int x = 0; x < 128; x += 1) {
+                int hex = 0xFFFFFFFF & HSBtoRGB((float) x / 127.0f, (float) y / 127.0f, (float) y / 127.0f);
+                defaultImage.setRGB(x, y, hex);
+            }
+        }
     }
 
     @Override

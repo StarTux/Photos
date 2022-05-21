@@ -1,9 +1,11 @@
 package com.winthier.photos;
 
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Color;
+import static java.awt.Color.HSBtoRGB;
 
-enum PhotoColor {
+public enum PhotoColor {
     AQUA(Color.AQUA),
     BLACK(Color.BLACK),
     BLUE(Color.BLUE),
@@ -22,14 +24,20 @@ enum PhotoColor {
     WHITE(Color.WHITE),
     YELLOW(Color.YELLOW);
 
-    final Color color;
+    public final Color color;
 
     PhotoColor(final Color color) {
         this.color = color;
     }
 
-    static PhotoColor random() {
+    public static PhotoColor random() {
         PhotoColor[] v = values();
         return v[ThreadLocalRandom.current().nextInt(v.length)];
+    }
+
+    public static int totallyRandom() {
+        Random random = ThreadLocalRandom.current();
+        float hue = random.nextFloat();
+        return 0xFFFFFF & HSBtoRGB(hue, 0.66f, 1.0f);
     }
 }

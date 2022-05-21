@@ -1,5 +1,6 @@
 package com.winthier.photos.sql;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
 import javax.persistence.Column;
@@ -44,5 +45,15 @@ public final class SQLPhoto {
 
     public String filename() {
         return String.format("%05d.png", id);
+    }
+
+    public int getHexColor() {
+        return color & 0xFFFFFF;
+    }
+
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yy/MM/dd");
+
+    public String formatCreationDate() {
+        return DATE_FORMAT.format(created);
     }
 }
