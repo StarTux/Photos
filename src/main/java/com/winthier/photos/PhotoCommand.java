@@ -89,7 +89,7 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
         }
         row.setName(newName);
         row.setUpdated(new Date());
-        plugin.getDatabase().updateAsync(photo, null, "name", "updated");
+        plugin.getDatabase().updateAsync(photo.getRow(), null, "name", "updated");
         updatePhotoItem(photo, item);
         player.sendMessage(join(noSeparators(), text("Updated name: ", color(SEPIA)), text(newName, WHITE)));
         return true;
