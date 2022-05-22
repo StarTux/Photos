@@ -1,5 +1,6 @@
 package com.winthier.photos.sql;
 
+import com.winthier.sql.SQLRow;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
@@ -14,7 +15,7 @@ import lombok.Data;
                  @Index(name = "owner", columnList = "owner"),
                  @Index(name = "updated", columnList = "updated")
              })
-public final class SQLPhoto {
+public final class SQLPhoto implements SQLRow {
     @Id
     private Integer id;
 
