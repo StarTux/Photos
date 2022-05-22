@@ -107,6 +107,8 @@ public final class Photos {
                             plugin.getLogger().info("[Update] New photo:"
                                                     + " photoId=" + photo.getPhotoId()
                                                     + " mapId=" + photo.getMapId());
+                        } else if (row.equals(photo.getRow())) {
+                            continue;
                         } else {
                             photo.setRow(row);
                             if (photo.getRenderer() != null) {
