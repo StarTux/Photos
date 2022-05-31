@@ -2,6 +2,7 @@ package com.winthier.photos;
 
 import com.cavetale.mytems.item.photo.Photo;
 import com.cavetale.mytems.item.photo.PhotoData;
+import com.winthier.photos.sql.SQLConsent;
 import com.winthier.photos.sql.SQLPhoto;
 import com.winthier.photos.util.Gui;
 import com.winthier.sql.SQLDatabase;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.List;
 import java.util.function.Consumer;
 import javax.imageio.ImageIO;
 import lombok.Getter;
@@ -46,7 +48,7 @@ public final class PhotosPlugin extends JavaPlugin {
     public void onEnable() {
         imageFolder = new File(getDataFolder(), "images");
         imageFolder.mkdirs();
-        database.registerTables(SQLPhoto.class);
+        database.registerTables(List.of(SQLPhoto.class, SQLConsent.class));
         if (!database.createAllTables()) {
             throw new IllegalStateException("Database setup failed");
         }

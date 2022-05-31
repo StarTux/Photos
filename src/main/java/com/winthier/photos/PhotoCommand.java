@@ -5,6 +5,7 @@ import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.photo.Photo;
+import com.winthier.photos.sql.SQLConsent;
 import com.winthier.photos.sql.SQLPhoto;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -49,6 +50,9 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
             .description("Change photo color")
             .completers(CommandArgCompleter.enumLowerList(PhotoColor.class))
             .playerCaller(this::setColor);
+        rootNode.addChild("rules").denyTabCompletion()
+            .description("Read the rules")
+            .playerCaller(this::rules);
         rootNode.addChild("accept").denyTabCompletion()
             .hidden(true)
             .playerCaller(this::accept);
@@ -58,7 +62,15 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
     }
 
     private void photos(Player player) {
-        new PhotosMenu(plugin, plugin.getPhotos().find(player.getUniqueId())).open(player);
+        plugin.getDatabase().find(SQLConsent.class)
+            .eq("player", player.getUniqueId())
+            .findRowCountAsync(count -> {
+                    if (count == 0) {
+                        rules(player);
+                        return;
+                    }
+                    new PhotosMenu(plugin, plugin.getPhotos().find(player.getUniqueId())).open(player);
+                });
     }
 
     private boolean load(Player player, String[] args) {
@@ -66,15 +78,23 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
         ItemStack item = photoInHand(player);
         PhotoRuntime photo = photoOfItem(player, item);
         URL url = parseURL(args[0]);
-        putOnCooldown(player);
-        player.sendMessage(text("Loading " + url + "...", color(SEPIA)));
-        plugin.downloadPhotoAsync(photo, url, false, (result) -> {
-                if (result.status().isSuccessful()) {
-                    photo.getRow().setUpdated(new Date());
-                    plugin.getDatabase().updateAsync(photo.getRow(), null, "updated");
-                }
-                acceptDownload(player, photo, url, result);
-            });
+        plugin.getDatabase().find(SQLConsent.class)
+            .eq("player", player.getUniqueId())
+            .findRowCountAsync(count -> {
+                    if (count == 0) {
+                        rules(player);
+                        return;
+                    }
+                    putOnCooldown(player);
+                    player.sendMessage(text("Loading " + url + "...", color(SEPIA)));
+                    plugin.downloadPhotoAsync(photo, url, false, (result) -> {
+                            if (result.status().isSuccessful()) {
+                                photo.getRow().setUpdated(new Date());
+                                plugin.getDatabase().updateAsync(photo.getRow(), null, "updated");
+                            }
+                            acceptDownload(player, photo, url, result);
+                        });
+                });
         return true;
     }
 
@@ -117,11 +137,14 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
         return true;
     }
 
+    private void rules(Player player) {
+        player.openBook(PhotoRules.makeBook());
+    }
+
     private void accept(Player player) {
         player.sendMessage(text("Thank you for accepting the rules!", GREEN));
-        //plugin.getDatabase().consent(player.getUniqueId());
-        //new PhotosMenu(plugin).open(player);
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.25f, 2.0f);
+        plugin.getDatabase().insertIgnoreAsync(new SQLConsent(player.getUniqueId()), null);
     }
 
     /**
@@ -131,7 +154,7 @@ final class PhotoCommand extends AbstractCommand<PhotosPlugin> {
     private void acceptDownload(Player player, PhotoRuntime photo, URL url, DownloadResult result) {
         switch (result.status()) {
         case SUCCESS: {
-            player.sendMessage(text("Image successfully downloaded. Please wait a minute for the photo to update.", GREEN));
+            player.sendMessage(text("Image successfully downloaded. Please wait a minute for the photo to develop.", GREEN));
             break;
         }
         case NOT_FOUND: {
