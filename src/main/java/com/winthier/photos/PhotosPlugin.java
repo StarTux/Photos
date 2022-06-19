@@ -35,7 +35,7 @@ public final class PhotosPlugin extends JavaPlugin {
     private final double photoPrice = 1000.0;
     private final double copyPrice = 100.0;
     private final long loadCooldown = 10L;
-    private final int maxFileSize = 1024 * 32;
+    private final int maxFileSize = 65536;
     private final BufferedImage defaultImage = new BufferedImage(128, 128, TYPE_INT_ARGB);
     private final String defaultDownloadURL = "https://i.imgur.com/NNvWR6B.png";
     private PhotoCommand photoCommand = new PhotoCommand(this);

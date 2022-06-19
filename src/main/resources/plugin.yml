@@ -2,7 +2,7 @@ main: com.winthier.photos.PhotosPlugin
 name: Photos
 
 version: 0.1
-api-version: 1.18
+api-version: 1.19
 
 description: Load images onto maps
 author: StarTux
