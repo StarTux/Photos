@@ -1,5 +1,6 @@
 package com.winthier.photos;
 
+import com.cavetale.core.connect.ServerGroup;
 import com.cavetale.mytems.item.photo.Photo;
 import com.cavetale.mytems.item.photo.PhotoData;
 import com.winthier.photos.sql.SQLConsent;
@@ -46,7 +47,9 @@ public final class PhotosPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        imageFolder = new File(getDataFolder(), "images");
+        imageFolder = ServerGroup.current() == ServerGroup.TESTING
+            ? new File(getDataFolder(), "images")
+            : new File("/home/cavetale/share/photos");
         imageFolder.mkdirs();
         database.registerTables(List.of(SQLPhoto.class, SQLConsent.class));
         if (!database.createAllTables()) {
