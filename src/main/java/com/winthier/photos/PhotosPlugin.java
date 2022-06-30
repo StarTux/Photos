@@ -47,9 +47,10 @@ public final class PhotosPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        imageFolder = ServerGroup.current() == ServerGroup.TESTING
-            ? new File(getDataFolder(), "images")
-            : new File("/home/cavetale/share/photos");
+        imageFolder = new File("/home/cavetale/share/photos");
+        if (ServerGroup.current() == ServerGroup.TESTING || !imageFolder.isDirectory()) {
+            imageFolder = new File(getDataFolder(), "images");
+        }
         imageFolder.mkdirs();
         database.registerTables(List.of(SQLPhoto.class, SQLConsent.class));
         if (!database.createAllTables()) {
