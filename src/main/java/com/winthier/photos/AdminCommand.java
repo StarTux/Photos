@@ -67,6 +67,9 @@ final class AdminCommand extends AbstractCommand<PhotosPlugin> {
             .completers(PlayerCache.NAME_COMPLETER,
                         PlayerCache.NAME_COMPLETER)
             .senderCaller(this::transferAll);
+        rootNode.addChild("prune").arguments("<forreal>")
+            .description("Prune empty photos")
+            .senderCaller(this::prune);
     }
 
     private void hand(Player player) {
@@ -203,6 +206,42 @@ final class AdminCommand extends AbstractCommand<PhotosPlugin> {
         }
         plugin.getPhotos().update();
         sender.sendMessage(text(count + " photo(s) transferred from " + from.name + " to " + to.name, AQUA));
+        return true;
+    }
+
+    private boolean prune(CommandSender sender, String[] args) {
+        boolean forReal = false;
+        if (args.length == 1) {
+            if (args[0].equals("forreal")) {
+                forReal = true;
+            } else {
+                return false;
+            }
+        } else if (args.length != 0) {
+            return false;
+        }
+        int total = 0;
+        int blank = 0;
+        for (SQLPhoto row : plugin.getDatabase().find(SQLPhoto.class).findList()) {
+            total += 1;
+            File file = new File(plugin.getImageFolder(), row.filename());
+            if (!file.exists()) {
+                blank += 1;
+                if (forReal) plugin.getDatabase().delete(row);
+            }
+        }
+        int local = 0;
+        if (forReal) {
+            local = plugin.getPhotos().pruneLocal();
+        }
+        if (blank == 0 && local == 0) {
+            throw new CommandWarn("No blank photos were found");
+        }
+        if (forReal) {
+            sender.sendMessage(text("Deleted " + blank + "/" + total + " blank photos, prunded " + local, YELLOW));
+        } else {
+            sender.sendMessage(text("Found " + blank + "/" + total + " blank photos", AQUA));
+        }
         return true;
     }
 }

@@ -94,6 +94,23 @@ public final class Photos {
         }
     }
 
+    protected int pruneLocal() {
+        List<Integer> ids = plugin.getDatabase().find(SQLPhoto.class)
+            .findValues("id", Integer.class);
+        int count = 0;
+        for (PhotoRuntime it : all) {
+            if (!ids.contains(it.getPhotoId())) {
+                try {
+                    localConnection.createStatement().execute("DELETE FROM `photos` WHERE `photo_id` = " +  it.getPhotoId());
+                } catch (SQLException sqle) {
+                    throw new IllegalStateException(sqle);
+                }
+                count += 1;
+            }
+        }
+        return count;
+    }
+
     public void update() {
         Date date = lastUpdate;
         lastUpdate = new Date();
