@@ -11,7 +11,9 @@ import com.winthier.photos.sql.SQLPhoto;
 import com.winthier.playercache.PlayerCache;
 import java.io.File;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -222,11 +224,15 @@ final class AdminCommand extends AbstractCommand<PhotosPlugin> {
         }
         int total = 0;
         int blank = 0;
+        Map<UUID, Integer> ownerMap = new HashMap<>();
         for (SQLPhoto row : plugin.getDatabase().find(SQLPhoto.class).findList()) {
             total += 1;
             File file = new File(plugin.getImageFolder(), row.filename());
             if (!file.exists()) {
                 blank += 1;
+                if (row.getOwner() != null) {
+                    ownerMap.compute(row.getOwner(), (u, i) -> i != null ? i + 1 : 1);
+                }
                 if (forReal) plugin.getDatabase().delete(row);
             }
         }
@@ -237,8 +243,11 @@ final class AdminCommand extends AbstractCommand<PhotosPlugin> {
         if (blank == 0 && local == 0) {
             throw new CommandWarn("No blank photos were found");
         }
+        for (Map.Entry<UUID, Integer> entry : ownerMap.entrySet()) {
+            sender.sendMessage(text("" + entry.getValue() + " " + PlayerCache.nameForUuid(entry.getKey()), GREEN));
+        }
         if (forReal) {
-            sender.sendMessage(text("Deleted " + blank + "/" + total + " blank photos, prunded " + local, YELLOW));
+            sender.sendMessage(text("Deleted " + blank + "/" + total + " blank photos, pruned " + local, YELLOW));
         } else {
             sender.sendMessage(text("Found " + blank + "/" + total + " blank photos", AQUA));
         }
