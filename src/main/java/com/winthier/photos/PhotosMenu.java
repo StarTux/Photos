@@ -1,5 +1,6 @@
 package com.winthier.photos;
 
+import com.cavetale.core.connect.ServerGroup;
 import com.cavetale.core.font.GuiOverlay;
 import com.cavetale.money.Money;
 import com.cavetale.mytems.Mytems;
@@ -164,6 +165,10 @@ public final class PhotosMenu {
     }
 
     private boolean buyPhoto(Player player) {
+        if (ServerGroup.current() == ServerGroup.MUSEUM) {
+            player.sendMessage(text("You cannot create photos on this server", RED));
+            return false;
+        }
         if (!player.hasPermission("photo.create")) {
             player.sendMessage(text("You do not have permission to create a photo", RED));
             return false;
