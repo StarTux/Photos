@@ -128,6 +128,10 @@ public final class PhotosMenu {
      * Copies of Photos are made via shift and left click.
      */
     private boolean buyCopy(Player player, PhotoRuntime photo) {
+        if (!player.hasPermission("photo.copy")) {
+            player.sendMessage(text("You do not have permission to purchase a copy", RED));
+            return false;
+        }
         double price = plugin.getCopyPrice();
         // Purchase
         if (!Money.take(player.getUniqueId(), price, plugin, "Make photo copy")) {
@@ -160,6 +164,10 @@ public final class PhotosMenu {
     }
 
     private boolean buyPhoto(Player player) {
+        if (!player.hasPermission("photo.create")) {
+            player.sendMessage(text("You do not have permission to create a photo", RED));
+            return false;
+        }
         double price = plugin.getPhotoPrice();
         if (!Money.take(player.getUniqueId(), price, plugin, "Buy blank photo")) {
             player.sendMessage(join(noSeparators(), text("You don't have ", RED), Coin.format(price), text("!", RED)));

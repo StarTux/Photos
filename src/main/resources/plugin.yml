@@ -28,6 +28,14 @@ permissions:
     description: Use the /photo command
     default: op
 
+  photos.create:
+    description: Create a blank photo
+    default: op
+
+  photos.copy:
+    description: Purchase a copy
+    default: op
+
   photos.admin:
     description: Use /photoadmin
     default: op
