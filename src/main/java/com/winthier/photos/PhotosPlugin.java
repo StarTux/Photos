@@ -33,7 +33,7 @@ import static java.awt.image.BufferedImage.TYPE_INT_ARGB;
  */
 @Getter
 public final class PhotosPlugin extends JavaPlugin {
-    private final double photoPrice = 1000.0;
+    private final double photoPrice = 5000.0;
     private final double copyPrice = 100.0;
     private final long loadCooldown = 10L;
     private final int maxFileSize = 65536;
