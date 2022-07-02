@@ -67,7 +67,22 @@ public final class PhotosPlugin extends JavaPlugin {
         Photo.setPhotoIdGetter(this::mapIdToPhotoId);
         for (int y = 0; y < 128; y += 1) {
             for (int x = 0; x < 128; x += 1) {
-                int hex = 0xFFFFFFFF & HSBtoRGB((float) x / 127.0f, (float) y / 127.0f, (float) y / 127.0f);
+                int dx = x - 64;
+                int dy = y - 64;
+                if (dx < 0) dx += 1;
+                if (dy < 0) dy += 1;
+                int r = dx * dx + dy * dy;
+                if (r > 4096) {
+                    continue;
+                } else if (r >= 3969) {
+                    defaultImage.setRGB(x, y, 0xFF000000);
+                    continue;
+                }
+                double theta = (float) Math.atan2((double) dx, (double) dy);
+                float hue = (float) ((theta / (Math.PI * 2.0)) + 0.5);
+                float sat = 1.0f;
+                float bri = 1.0f;
+                int hex = 0xFFFFFFFF & HSBtoRGB(hue, sat, bri);
                 defaultImage.setRGB(x, y, hex);
             }
         }
