@@ -129,7 +129,7 @@ public final class PhotosMenu {
      * Copies of Photos are made via shift and left click.
      */
     private boolean buyCopy(Player player, PhotoRuntime photo) {
-        if (!player.hasPermission("photo.copy")) {
+        if (!player.hasPermission("photos.copy")) {
             player.sendMessage(text("You do not have permission to purchase a copy", RED));
             return false;
         }
@@ -169,7 +169,7 @@ public final class PhotosMenu {
             player.sendMessage(text("You cannot create photos on this server", RED));
             return false;
         }
-        if (!player.hasPermission("photo.create")) {
+        if (!player.hasPermission("photos.create")) {
             player.sendMessage(text("You do not have permission to create a photo", RED));
             return false;
         }
