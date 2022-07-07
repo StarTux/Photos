@@ -8,7 +8,7 @@ description: Load images onto maps
 author: StarTux
 website: https://github.com/StarTux/Photos
 
-depend: [Core, SQL, PlayerCache, Money, Mytems]
+depend: [Core, SQL, PlayerCache, Mytems]
 
 commands:
   photo:

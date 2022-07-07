@@ -2,7 +2,7 @@ package com.winthier.photos;
 
 import com.cavetale.core.connect.ServerGroup;
 import com.cavetale.core.font.GuiOverlay;
-import com.cavetale.money.Money;
+import com.cavetale.core.money.Money;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.coin.Coin;
 import com.cavetale.mytems.item.photo.Photo;
@@ -135,7 +135,7 @@ public final class PhotosMenu {
         }
         double price = plugin.getCopyPrice();
         // Purchase
-        if (!Money.take(player.getUniqueId(), price, plugin, "Make photo copy")) {
+        if (!Money.get().take(player.getUniqueId(), price, plugin, "Make photo copy")) {
             player.sendMessage(join(noSeparators(), text("You don't have ", RED), Coin.format(price), text("!", RED)));
             return false;
         }
@@ -174,7 +174,7 @@ public final class PhotosMenu {
             return false;
         }
         double price = plugin.getPhotoPrice();
-        if (!Money.take(player.getUniqueId(), price, plugin, "Buy blank photo")) {
+        if (!Money.get().take(player.getUniqueId(), price, plugin, "Buy blank photo")) {
             player.sendMessage(join(noSeparators(), text("You don't have ", RED), Coin.format(price), text("!", RED)));
             return false;
         }
@@ -188,7 +188,7 @@ public final class PhotosMenu {
             plugin.getLogger().warning("Could not create Photo for " + player.getName() + "!");
             player.sendMessage(text("Something went wrong during Photo creation."
                                     + " Please contact an administrator.", RED));
-            Money.give(player.getUniqueId(), price, plugin, "Photo Refund");
+            Money.get().give(player.getUniqueId(), price, plugin, "Photo Refund");
             return false;
         }
         ItemStack item = Photo.createItemStack(photo.getRow().getId());
