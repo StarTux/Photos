@@ -165,7 +165,7 @@ public final class Photos {
                                + " VALUES"
                                + " (" + row.getId() + ", " + mapId + ")");
         } catch (SQLException sqle) {
-            throw new IllegalStateException(sqle);
+            throw new IllegalStateException(row.toString(), sqle);
         }
         initializeMapView(mapView, photo);
         return photo;
