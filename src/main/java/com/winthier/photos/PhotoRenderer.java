@@ -1,6 +1,7 @@
 package com.winthier.photos;
 
 import java.awt.image.BufferedImage;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapRenderer;
@@ -43,6 +44,7 @@ final class PhotoRenderer extends MapRenderer {
         canvas.drawImage(0, 0, image);
         drawImageThisTick = true;
         drawn = true;
+        Bukkit.getScheduler().runTask(plugin, () -> player.sendMap(view));
     }
 
     protected void refresh() {
