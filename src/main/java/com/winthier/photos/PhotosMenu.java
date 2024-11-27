@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import static com.cavetale.core.font.Unicode.tiny;
 import static com.cavetale.mytems.item.photo.Photo.SEPIA;
-import static com.cavetale.mytems.util.Items.text;
+import static com.cavetale.mytems.util.Items.tooltip;
 import static net.kyori.adventure.text.Component.empty;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.text;
@@ -60,15 +60,15 @@ public final class PhotosMenu {
             PhotoRuntime photo = photos.get(listIndex);
             ItemStack icon = Photo.createItemStack(photo.getRow().getId());
             icon.editMeta(meta -> {
-                    text(meta, List.of(text(photo.getRow().getName(), color(photo.getRow().getColor())),
-                                       join(noSeparators(),
-                                            text(tiny("shift-click "), GREEN),
-                                            text("to buy", GRAY)),
-                                       text("an item copy", GRAY),
-                                       empty(),
-                                       join(noSeparators(),
-                                            text(tiny("price "), GRAY),
-                                            Coin.format(plugin.getCopyPrice()))));
+                    tooltip(meta, List.of(text(photo.getRow().getName(), color(photo.getRow().getColor())),
+                                          join(noSeparators(),
+                                               text(tiny("shift-click "), GREEN),
+                                               text("to buy", GRAY)),
+                                          text("an item copy", GRAY),
+                                          empty(),
+                                          join(noSeparators(),
+                                               text(tiny("price "), GRAY),
+                                               Coin.format(plugin.getCopyPrice()))));
                 });
             gui.setItem(invIndex, icon, click -> {
                     if (click.isShiftClick()) {
